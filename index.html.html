@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HL BOT v1.0</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #060a0f; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; overflow-x: hidden; }
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Bebas+Neue&display=swap');
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 2px; }
+input, select { background: rgba(13,18,30,0.9); border: 1px solid #0d2035; color: #94a3b8; padding: 8px 12px; border-radius: 6px; font-family: monospace; font-size: 11px; outline: none; width: 100%; }
+input:focus, select:focus { border-color: #00ff9540; color: #e2e8f0; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)} }
+@keyframes scan { 0%{top:-2px}100%{top:100vh} }
+@keyframes slideIn { from{transform:translateX(130%);opacity:0}to{transform:translateX(0);opacity:1} }
+.pulse { animation: pulse 2s infinite; }
+.fadeUp { animation: fadeUp 0.4s ease both; }
+.notif { animation: slideIn 0.35s cubic-bezier(.16,1,.3,1); }
+.scanline { position:fixed;left:0;right:0;height:1px;background:linear-gradient(transparent,rgba(0,255,149,0.06),transparent);pointer-events:none;z-index:9999;animation:scan 10s linear infinite; }
+.grid-bg { position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(0,255,149,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,149,0.025) 1px,transparent 1px);background-size:48px 48px; }
+input[type=range] { -webkit-appearance:none;height:3px;background:linear-gradient(90deg,#00ff95,#1e4a8a);border-radius:2px;outline:none;cursor:pointer; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#00ff95;box-shadow:0 0 8px #00ff9580;cursor:pointer; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+const { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } = Recharts;
+
+const BACKEND_URL = "https://hlbot-backend.onrender.com";
+const HL_API = "https://api.hyperliquid.xyz/info";
+
+async function hlPost(payload) {
+  const res = await fetch(HL_API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+async function fetchPortfolio(address) {
+  const [state, positions, spotState] = await Promise.all([
+    hlPost({ type: "clearinghouseState", user: address }),
+    hlPost({ type: "openOrders", user: address }),
+    hlPost({ type: "spotClearinghouseState", user: address }),
+  ]);
+  return { state, positions, spotState };
+}
+
+async function fetchAllMids() { return hlPost({ type: "allMids" }); }
+async function fetchMeta() { return hlPost({ type: "meta" }); }
+async function fetchUserFills(address) { return hlPost({ type: "userFills", user: address, startTime: Date.now() - 7 * 24 * 60 * 60 * 1000 }); }
+
+const TABS = [["dashboard","⬛ OVERVIEW"],["positions","📊 POSIZIONI"],["order","⚡ ORDINE"],["webhook","🔗 WEBHOOK"],["history","📋 STORICO"],["settings","⚙️ CONFIG"]];
+
+function StatCard({ label, value, sub, color = "#00ff95" }) {
+  return (
+    <div style={{ background: "rgba(13,18,30,0.85)", border: "1px solid #0d2035", borderRadius: 10, padding: "16px 18px", position: "relative" }}>
+      <div style={{ fontSize: 9, color: "#334155", letterSpacing: 2, marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 20, fontFamily: "Bebas Neue, sans-serif", letterSpacing: 2, color, lineHeight: 1 }}>{value}</div>
+      {sub && <div style={{ fontSize: 9, color: "#475569", marginTop: 6 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function App() {
+  const [tab, setTab] = useState("settings");
+  const [walletAddress, setWalletAddress] = useState(() => { try { return localStorage.getItem("hl_wallet") || ""; } catch { return ""; } });
+  const [apiKey, setApiKey] = useState("");
+  const [connected, setConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [connError, setConnError] = useState("");
+  const [portfolio, setPortfolio] = useState(null);
+  const [fills, setFills] = useState([]);
+  const [mids, setMids] = useState({});
+  const [meta, setMeta] = useState(null);
+  const [pnlHistory, setPnlHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const notifIdRef = useRef(0);
+  const [orderCoin, setOrderCoin] = useState("BTC");
+  const [orderSide, setOrderSide] = useState("buy");
+  const [orderType, setOrderType] = useState("market");
+  const [orderSize, setOrderSize] = useState("");
+  const [orderPrice, setOrderPrice] = useState("");
+  const [orderLeverage, setOrderLeverage] = useState(1);
+  const [orderLoading, setOrderLoading] = useState(false);
+  const [orderResult, setOrderResult] = useState(null);
+  const [webhookLog, setWebhookLog] = useState([]);
+  const [webhookSecret, setWebhookSecret] = useState("MY_SECRET_" + Math.random().toString(36).slice(2,8).toUpperCase());
+
+  const addNotif = useCallback((msg, type = "info") => {
+    const id = ++notifIdRef.current;
+    setNotifications(prev => [{ id, msg, type }, ...prev.slice(0, 4)]);
+    setTimeout(() => setNotifications(prev => prev.filter(n => n.id !== id)), 5000);
+  }, []);
+
+  async function loadData(addr) {
+    setLoading(true);
+    try {
+      const address = addr || walletAddress;
+      const [portRes, fillRes, midsRes, metaRes] = await Promise.all([fetchPortfolio(address), fetchUserFills(address), fetchAllMids(), fetchMeta()]);
+      setPortfolio(portRes);
+      setFills(Array.isArray(fillRes) ? fillRes.slice(0, 100) : []);
+      setMids(midsRes);
+      setMeta(metaRes);
+      setLastUpdate(new Date());
+      if (Array.isArray(fillRes) && fillRes.length > 0) {
+        let cumPnl = 0;
+        const hist = fillRes.slice().reverse().map(f => { cumPnl += parseFloat(f.closedPnl || 0); return { label: new Date(f.time).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }), v: +cumPnl.toFixed(2) }; });
+        setPnlHistory(hist);
+      }
+    } finally { setLoading(false); }
+  }
+
+  async function handleConnect() {
+    if (!walletAddress.trim()) { setConnError("Inserisci il wallet address"); return; }
+    if (!walletAddress.startsWith("0x") || walletAddress.length !== 42) { setConnError("Indirizzo non valido"); return; }
+    setConnecting(true); setConnError("");
+    try {
+      await loadData(walletAddress.trim());
+      setConnected(true); setTab("dashboard");
+      addNotif("✅ Connesso a Hyperliquid", "win");
+      try { localStorage.setItem("hl_wallet", walletAddress.trim()); } catch {}
+    } catch (e) { setConnError("Connessione fallita: " + e.message); }
+    finally { setConnecting(false); }
+  }
+
+  useEffect(() => {
+    if (walletAddress && walletAddress.startsWith("0x") && walletAddress.length === 42) {
+      loadData(walletAddress).then(() => { setConnected(true); setTab("dashboard"); }).catch(() => {});
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!connected) return;
+    const t = setInterval(() => loadData(), 15000);
+    return () => clearInterval(t);
+  }, [connected, walletAddress]);
+
+  async function handleOrder() {
+    if (!orderSize) { addNotif("⚠️ Inserisci la size", "loss"); return; }
+    setOrderLoading(true); setOrderResult(null);
+    try {
+      const res = await fetch(`${BACKEND_URL}/order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ coin: orderCoin, side: orderSide, size: orderSize, price: orderPrice || null, leverage: orderLeverage, orderType }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrderResult({ type: "win", msg: `✅ Ordine eseguito!\n${orderSide.toUpperCase()} ${orderSize} ${orderCoin}` });
+        addNotif(`✅ ${orderSide.toUpperCase()} ${orderSize} ${orderCoin} eseguito!`, "win");
+        setTimeout(() => loadData(), 2000);
+      } else {
+        setOrderResult({ type: "loss", msg: `❌ Errore: ${data.error}` });
+      }
+    } catch (e) {
+      setOrderResult({ type: "loss", msg: "❌ Errore: " + e.message });
+    } finally { setOrderLoading(false); }
+  }
+
+  function simulateWebhook() {
+    const s = { strategy: "RSI Oversold", coin: "BTC", side: "buy", size: "0.01", price: mids["BTC"] || "67000" };
+    setWebhookLog(prev => [{ ts: new Date().toLocaleTimeString("it-IT"), raw: JSON.stringify({ secret: webhookSecret, ...s }), parsed: s, status: "received" }, ...prev].slice(0, 20));
+    addNotif(`🔗 Segnale TV: ${s.side.toUpperCase()} ${s.coin}`, "win");
+  }
+
+  const perpsValue = parseFloat(portfolio?.state?.marginSummary?.accountValue || 0);
+  const spotBalances = portfolio?.spotState?.balances || [];
+  const spotUsdc = spotBalances.find(b => b.coin === "USDC" || b.coin === "@1");
+  const spotValue = parseFloat(spotUsdc?.total || 0);
+  const totalAccountValue = perpsValue + spotValue;
+  const accountValue = totalAccountValue > 0 ? totalAccountValue.toFixed(2) : "—";
+  const totalPnl = fills.reduce((a, f) => a + parseFloat(f.closedPnl || 0), 0);
+  const openPositions = portfolio?.state?.assetPositions?.filter(p => parseFloat(p.position?.szi || 0) !== 0) || [];
+  const unrealizedPnl = openPositions.reduce((a, p) => a + parseFloat(p.position?.unrealizedPnl || 0), 0);
+  const winFills = fills.filter(f => parseFloat(f.closedPnl || 0) > 0);
+  const winRate = fills.length ? ((winFills.length / fills.length) * 100).toFixed(1) : "0";
+  const topCoins = Object.entries(mids).slice(0, 5);
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#060a0f", color: "#e2e8f0", fontFamily: "JetBrains Mono, monospace" }}>
+      <div className="scanline" /><div className="grid-bg" />
+
+      {/* Notifications */}
+      <div style={{ position: "fixed", top: 72, right: 16, zIndex: 1000, display: "flex", flexDirection: "column", gap: 8, maxWidth: 320 }}>
+        {notifications.map(n => (
+          <div key={n.id} className="notif" style={{ background: n.type === "win" ? "rgba(0,255,149,0.08)" : n.type === "loss" ? "rgba(255,77,109,0.08)" : "rgba(96,165,250,0.08)", border: `1px solid ${n.type === "win" ? "#00ff9530" : n.type === "loss" ? "#ff4d6d30" : "#60a5fa30"}`, borderRadius: 8, padding: "9px 14px", fontSize: 11, color: n.type === "win" ? "#00ff95" : n.type === "loss" ? "#ff4d6d" : "#60a5fa", backdropFilter: "blur(12px)", whiteSpace: "pre-line" }}>{n.msg}</div>
+        ))}
+      </div>
+
+      {/* Header */}
+      <div style={{ borderBottom: "1px solid #0d2035", background: "rgba(6,10,15,0.97)", padding: "0 24px", position: "sticky", top: 0, zIndex: 100, display: "flex", alignItems: "center", justifyContent: "space-between", height: 58 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+            <span style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: 24, letterSpacing: 4, color: "#00ff95" }}>HL</span>
+            <span style={{ fontFamily: "Bebas Neue, sans-serif", fontSize: 24, letterSpacing: 4, color: "#e2e8f0" }}>BOT</span>
+            <span style={{ fontSize: 9, color: "#1e4a8a", letterSpacing: 2 }}>v1.0</span>
+          </div>
+          {connected && (
+            <div style={{ display: "flex", gap: 16, paddingLeft: 20, borderLeft: "1px solid #0d2035" }}>
+              {topCoins.map(([coin, price]) => (
+                <span key={coin} style={{ fontSize: 10 }}>
+                  <span style={{ color: "#475569" }}>{coin} </span>
+                  <span style={{ color: "#00ff95" }}>${parseFloat(price).toLocaleString()}</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          {connected && <div style={{ fontSize: 14, fontFamily: "Bebas Neue, sans-serif", letterSpacing: 2, color: "#00ff95" }}>${parseFloat(accountValue).toLocaleString()}</div>}
+          <div style={{ fontSize: 10, color: connected ? "#00ff95" : "#64748b" }}>{connected ? <span className="pulse">● LIVE</span> : "○ OFFLINE"}</div>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <div style={{ display: "flex", borderBottom: "1px solid #0d2035", background: "rgba(6,10,15,0.85)", padding: "0 24px", position: "sticky", top: 58, zIndex: 99, overflowX: "auto" }}>
+        {TABS.map(([key, label]) => (
+          <button key={key} onClick={() => setTab(key)} style={{ background: "none", border: "none", padding: "11px 18px", fontSize: 10, letterSpacing: 2, whiteSpace: "nowrap", color: tab === key ? "#00ff95" : "#475569", borderBottom: `2px solid ${tab === key ? "#00ff95" : "transparent"}`, cursor: "pointer", fontFamily: "monospace" }}>{label}</button>
+        ))}
+      </div>
+
+      <div style={{ padding: 24, position: "relative", zIndex: 1, maxWidth: 1200, margin: "0 auto" }}>
+
+        {/* SETTINGS */}
+        {tab === "settings" && (
+          <div className="fadeUp" style={{ maxWidth: 600 }}>
+            <div style={{ background: "rgba(13,18,30,0.85)", border: "1px solid #0d2035", borderRadius: 10, padding: 22 }}>
+              <div style={{ fontSize: 10, color: "#475569", letterSpacing: 2, marginBottom: 18 }}>CONNESSIONE HYPERLIQUID</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 9, color: "#334155", marginBottom: 6 }}>WALLET ADDRESS (pubblico)</div>
+                  <input type="text" placeholder="0x..." value={walletAddress} onChange={e => setWalletAddress(e.target.value)} />
+                </div>
+                {connError && <div style={{ fontSize: 11, color: "#ff4d6d", padding: "8px 12px", background: "rgba(255,77,109,0.06)", borderRadius: 6 }}>{connError}</div>}
+                <button onClick={handleConnect} disabled={connecting} style={{ padding: "10px 24px", borderRadius: 8, fontSize: 11, letterSpacing: 2, background: "rgba(0,255,149,0.1)", border: "1px solid #00ff9550", color: "#00ff95", cursor: "pointer", fontFamily: "monospace" }}>
+                  {connecting ? "CONNESSIONE..." : connected ? "↺ RICONNETTI" : "→ CONNETTI"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* DASHBOARD */}
+        {tab === "dashboard" && (
+          <div className="fadeUp">
+            {!connected ? (
+              <div style={{ textAlign: "center", padding: 80, color: "#334155" }}>
+                <div style={{ fontSize: 40, marginBottom: 16 }}>🔌</div>
+                <div style={{ fontSize: 14, marginBottom: 8 }}>Non connesso</div>
+                <button onClick={() => setTab("settings")} style={{ fontSize: 10, color: "#00ff95", border: "1px solid #00ff9530", padding: "8px 20px", borderRadius: 6, background: "none", cursor: "pointer" }}>→ CONFIGURA</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 20 }}>
+                  <StatCard label="ACCOUNT VALUE" value={`$${parseFloat(accountValue).toLocaleString()}`} sub="margine totale" color="#00ff95" />
+                  <StatCard label="P&L REALIZZATO" value={`${totalPnl >= 0 ? "+" : ""}$${totalPnl.toFixed(2)}`} sub={`${fills.length} fills (7gg)`} color={totalPnl >= 0 ? "#00ff95" : "#ff4d6d"} />
+                  <StatCard label="P&L NON REALIZ." value={`${unrealizedPnl >= 0 ? "+" : ""}$${unrealizedPnl.toFixed(2)}`} sub={`${openPositions.length} posizioni`} color={unrealizedPnl >= 0 ? "#34d399" : "#f87171"} />
+                  <StatCard label="WIN RATE" value={`${winRate}%`} sub={`${winFills.length}W / ${fills.length - winFills.length}L`} color="#a78bfa" />
+                </div>
+                <div style={{ background: "rgba(13,18,30,0.85)", border: "1px solid #0d2035", borderRadius: 10, padding: "20px 20px 12px", marginBottom: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <div style={{ fontSize: 10, color: "#475569", letterSpacing: 2 }}>EQUITY CURVE</div>
+                    <div style={{ fontSize: 18, fontFamily: "Bebas Neue, sans-serif", letterSpacing: 2, color: totalPnl >= 0 ? "#00ff95" : "#ff4d6d" }}>{totalPnl >= 0 ? "+" : ""}${totalPnl.toFixed(2)}</div>
+                  </div>
+                  {pnlHistory.length > 1 ? (
+                    <ResponsiveContainer width="100%" height={180}>
+                      <AreaChart data={pnlHistory}>
+                        <defs>
+                          <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={totalPnl >= 0 ? "#00ff95" : "#ff4d6d"} stopOpacity={0.15} />
+                            <stop offset="95%" stopColor={totalPnl >= 0 ? "#00ff95" : "#ff4d6d"} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis dataKey="label" tick={{ fill: "#334155", fontSize: 9 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                        <YAxis tick={{ fill: "#334155", fontSize: 9 }} tickLine={false} axisLine={false} tickFormatter={v => `$${v}`} width={56} />
+                        <Tooltip contentStyle={{ background: "rgba(6,10,15,0.97)", border: "1px solid #00ff9540", borderRadius: 6, fontSize: 12, fontFamily: "monospace" }} />
+                        <ReferenceLine y={0} stroke="#1e2a3a" strokeDasharray="4 4" />
+                        <Area type="monotone" dataKey="v" stroke={totalPnl >= 0 ? "#00ff95" : "#ff4d6d"} strokeWidth={2} fill="url(#g)" dot={false} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  ) : <div style={{ height: 180, display: "flex", alignItems: "center", justifyContent: "center", color: "#334155", fontSize: 11 }}>Nessun dato sufficiente</div>}
+                </div>
+                <div style={{ background: "rgba(13,18,30,0.85)", border: "1px solid #0d2035", borderRadius: 10, padding: 18 }}>
+                  <div style={{ fontSize: 10, color: "#475569", letterSpacing: 2, marginBottom: 14 }}>POSIZIONI APERTE ({openPositions.length})</div>
+                  {openPositions.length === 0 ? <div style={{ color: "#334155", fontSize: 11, textAlign: "center", padding: 24 }}>Nessuna posizione aperta</div> :
+                    openPositions.slice(0, 5).map((p, i) => {
+                      const pos = p.position;
+                      const szi = parseFloat(pos.szi);
+                      const upnl = parseFloat(pos.unrealizedPnl);
+                      return (
+                        <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < openPositions.length - 1 ? "1px solid #0a1420" : "none" }}>
+                          <span style={{ fontSize: 8, padding: "2px 7px", borderRadius: 10, background: szi > 0 ? "#00ff9515" : "#ff4d6d15", color: szi > 0 ? "#00ff95" : "#ff4d6d", border: `1px solid ${szi > 0 ? "#00ff9530" : "#ff4d6d30"}` }}>{szi > 0 ? "LONG" : "SHORT"}</span>
+                          <span style={{ fontSize: 13, color: "#e2e8f0", flex: 1 }}>{pos.coin}</span>
+                          <span style={{ fontSize: 11, color: upnl >= 0 ? "#00ff95" : "#ff4d6d" }}>{upnl >= 0 ? "+" : ""}${upnl.toFixed(2)}</span>
+                        </div>
+                      );
+                    })
+                  }
+                </div>
+                {lastUpdate && <div style={{ fontSize: 9, color: "#334155", textAlign: "right", marginTop: 10 }}>Aggiornato: {lastUpdate.toLocaleTimeString("it-IT")} · Auto-refresh ogni 15s</div>}
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ORDINE */}
+        {tab === "order" && (
+          <div className="fadeUp" style={{ maxWidth: 560 }}>
+            <div style={{ background: "rgba(13,18,30,0.85)", border: "1px solid #0d2035", borderRadius: 10, padding: 24 }}>
+              <div style={{ fontSize: 10, color: "#475569", letterSpacing: 2, marginBottom: 20 }}>PIAZZA ORDINE — HYPERLIQUID</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div>
+                  <div style={{ fontSize: 9, color: "#334155", marginBottom: 6 }}>COIN</div>
+                  <select value={orderCoin} onChange={e => setOrderCoin(e.target.value)}>
+                    {(meta?.universe || [{ name: "BTC" }, { name: "ETH" }, { name: "SOL" }]).map(u => <option key={u.name} value={u.name}>{u.name}</option>)}
+                  </select>
+                  {mids[orderCoin] && <div style={{ fontSize: 9, color: "#475569", marginTop: 4 }}>Mark price: <span style={{ color: "#00ff95" }}>${parseFloat(mids[orderCoin]).toLocaleString()}</span></div>}
+                </div>
+                <div>
+                  <div style={{ fontSize: 9, color: "#334155", marginBottom: 8 }}>DIREZIONE</div>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    {["buy", "sell"].map(s => (
+                      <button key={s} onClick={() => setOrderSide(s)} style={{ flex: 1, padding: "10px", borderRadius: 8, fontSize: 11, letterSpacing: 2, border: `1px solid ${orderSide === s ? (s === "buy" ? "#00ff95" : "#ff4d6d") + "60" : "#0d2035"}`, background: orderSide === s ? (s === "buy" ? "rgba(0,255,149,0.1)" : "rgba(255,77,109,0.1)") : "transparent", color: orderSide === s ? (s === "buy" ? "#00ff95" : "#ff4d6d") : "#475569", cursor: "pointer", fontFamily: "monospace" }}>{s === "buy" ? "⬆ LONG" : "⬇ SHORT"}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 9, color: "#334155", marginBottom: 8 }}>TIPO ORDINE</div>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    {["market", "limit"].map(t => (
+                      <button key={t} onClick={() => setOrderType(t)} style={{ flex: 1, padding: "8px", borderRadius: 6, fontSize: 10, letterSpacing: 1, border: `1px solid ${orderType === t ? "#a78bfa60" : "#0d2035"}`, background: orderType === t ? "rgba(167,139,250,0.08)" : "transparent", color: orderType === t ? "#a78bfa" : "#475569", cursor: "pointer", fontFamily: "monospace" }}>{t.toUpperCase()}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 9, color: "#334155", marginBottom: 6 }}>SIZE (contratti)</div>
+                  <input type="number" placeholder="es. 0.001" value={orderSize} onChange={e => setOrderSize(e.target.value)} step="0.001" min="0" />
+                </div>
+                {orderType === "limit" && (
+                  <div>
+                    <div style={{ fontSize: 9, color: "#334155", marginBottom: 6 }}>PREZZO LIMITE ($)</div>
+                    <input type="number" placeholder="es. 65000" value={orderPrice} onChange={e => setOrderPrice(e.target.value)} />
+                  </div>
+                )}
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <div style={{ fontSize: 9, color: "#334155" }}>LEVA</div>
+                    <div style={{ fontSize: 18, fontFamily: "Bebas Neue, sans-serif", color: "#fb923c", letterSpacing: 2 }}>{orderLeverage}x</div>
+                  </div>
+                  <input type="range" min={1} max={50} value={orderLeverage} onChange={e => setOrderLeverage(+e.target.value)} />
+                </div>
+                <button onClick={handleOrder} disabled={orderLoading || !connected} style={{ padding: "12px", borderRadius: 8, fontSize: 11, letterSpacing: 2, background: orderSide === "buy" ? "rgba(0,255,149,0.1)" : "rgba(255,77,109,0.1)", border: `1px solid ${orderSide === "buy" ? "#00ff9550" : "#ff4d6d50"}`, color: orderSide === "buy" ? "#00ff95" : "#ff4d6d", cursor: (orderLoading || !connected) ? "not-allowed" : "pointer", fontFamily: "monospace" }}>
+                  {orderLoading ? "INVIO..." : !connected ? "CONNETTITI PRIMA" : `⚡ ESEGUI ${orderSide === "buy" ? "LONG" : "SHORT"} ${orderCoin}`}
+                </button>
+                {orderResult && (
+                  <div style={{ fontSize: 10, padding: "12px 14px", borderRadius: 8, whiteSpace: "pre-line", lineHeight: 1.8, background: orderResult.type === "win" ? "rgba(0,255,149,0.06)" : "rgba(255,77,109,0.06)", border: `1px solid ${orderResult.type === "win" ? "#00ff9520" : "#ff4d6d20"}`, color: orderResult.type === "win" ? "#00ff95" : "#ff4d6d" }}>{orderResult.msg}</div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STORICO */}
+        {tab === "history" && (
+          <div className="fadeUp">
+            <div style={{ background: "rgba(13,18,30,0.85)", border: "1px solid #0d2035", borderRadius: 10, overflow: "hidden" }}>
+              <div style={{ padding: "16px 20px", borderBottom: "1px solid #0d1a2a" }}>
+                <div style={{ fontSize: 10, color: "#475569", letterSpacing: 2 }}>STORICO TRADE (7 giorni) — {fills.length} fills</div>
+              </div>
+              <div style={{ maxHeight: 600, overflowY: "auto" }}>
+                {fills.length === 0 ? <div style={{ textAlign: "center", padding: 60, color: "#334155", fontSize: 12 }}>{connected ? "Nessun trade negli ultimi 7 giorni" : "Connettiti per vedere lo storico"}</div> :
+                  fills.map((f, i) => {
+                    const pnl = parseFloat(f.closedPnl || 0);
+                    return (
+                      <div key={i} style={{ display: "grid", gridTemplateColumns: "80px 1fr 100px 100px 100px 90px", padding: "11px 20px", fontSize: 11, borderBottom: "1px solid #080f1a", alignItems: "center" }}>
+                        <span style={{ fontSize: 8, padding: "2px 7px", borderRadius: 10, background: f.side === "A" ? "#ff4d6d15" : "#00ff9515", color: f.side === "A" ? "#ff4d6d" : "#00ff95", border: `1px solid ${f.side === "A" ? "#ff4d6d30" : "#00ff9530"}` }}>{f.side === "A" ? "SELL" : "BUY"}</span>
+                        <span style={{ color: "#94a3b8" }}>{f.coin}</span>
+                        <span style={{ color: "#475569" }}>{Math.abs(parseFloat(f.sz))}</span>
+                        <span style={{ color: "#64748b", fontSize: 10 }}>${parseFloat(f.px).toLocaleString()}</span>
+                        <span style={{ color: pnl >= 0 ? "#00ff95" : "#ff4d6d" }}>{pnl !== 0 ? `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)}` : "—"}</span>
+                        <span style={{ fontSize: 9, color: "#334155" }}>{new Date(f.time).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}</span>
+                      </div>
+                    );
+                  })
+                }
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* WEBHOOK */}
+        {tab === "webhook" && (
+          <div className="fadeUp">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+              <div style={{ background: "rgba(13,18,30,0.85)", border: "1px solid #0d2035", borderRadius: 10, padding: 20 }}>
+                <div style={{ fontSize: 10, color: "#475569", letterSpacing: 2, marginBottom: 14 }}>SETUP TRADINGVIEW</div>
+                <div style={{ fontSize: 11, color: "#64748b", lineHeight: 1.9, marginBottom: 12 }}>
+                  Webhook URL:<br/>
+                  <span style={{ color: "#00ff95", fontSize: 10 }}>https://hlbot-backend.onrender.com/webhook</span>
+                </div>
+                <div style={{ background: "rgba(6,10,15,0.8)", borderRadius: 8, padding: 14, fontSize: 10, color: "#00ff95", lineHeight: 2, border: "1px solid #0d2035", marginBottom: 12 }}>
+                  {`{\n  "secret": "${webhookSecret}",\n  "coin": "{{ticker}}",\n  "side": "buy",\n  "size": "0.01"\n}`}
+                </div>
+                <button onClick={simulateWebhook} style={{ width: "100%", padding: "10px", borderRadius: 8, fontSize: 10, letterSpacing: 2, background: "rgba(167,139,250,0.08)", border: "1px solid #a78bfa40", color: "#a78bfa", cursor: "pointer", fontFamily: "monospace" }}>▶ SIMULA SEGNALE TV</button>
+              </div>
+              <div style={{ background: "rgba(13,18,30,0.85)", border: "1px solid #0d2035", borderRadius: 10, padding: 20 }}>
+                <div style={{ fontSize: 10, color: "#475569", letterSpacing: 2, marginBottom: 14 }}>LOG SEGNALI</div>
+                {webhookLog.length === 0 ? <div style={{ color: "#334155", fontSize: 11, textAlign: "center", padding: 40 }}>Nessun segnale ricevuto</div> :
+                  webhookLog.map((w, i) => (
+                    <div key={i} style={{ background: "rgba(6,10,15,0.7)", borderRadius: 8, padding: 12, border: "1px solid #0d1a2a", marginBottom: 8 }}>
+                      <div style={{ fontSize: 9, color: "#a78bfa", marginBottom: 6 }}>{w.ts}</div>
+                      <div style={{ fontSize: 10, color: "#64748b" }}>{w.parsed.side?.toUpperCase()} {w.parsed.coin} size:{w.parsed.size}</div>
+                    </div>
+                  ))
+                }
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+</script>
+</body>
+</html>
