@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>HL BOT v1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -11,7 +13,6 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #060a0f; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; overflow-x: hidden; }
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Bebas+Neue&display=swap');
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 2px; }
 input, select { background: rgba(13,18,30,0.9); border: 1px solid #0d2035; color: #94a3b8; padding: 8px 12px; border-radius: 6px; font-family: monospace; font-size: 11px; outline: none; width: 100%; }
@@ -433,7 +434,8 @@ function App() {
   );
 }
 
-ReactDOM.render(<App />, document.getElementById("root"));
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
 </script>
 </body>
 </html>
