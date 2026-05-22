@@ -390,6 +390,27 @@ async function handleOrder() {
   setOrderSide(state.orderSide);
 }
 
+// CLOSE POSITION
+async function closePosition(coin) {
+  if (!confirm(`Chiudere posizione ${coin}?`)) return;
+  try {
+    const res = await fetch(BACKEND_URL + "/close", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ coin })
+    });
+    const data = await res.json();
+    if (data.success) {
+      addNotif(`✅ Posizione ${coin} chiusa!`, "win");
+      setTimeout(() => loadData(), 2000);
+    } else {
+      addNotif(`❌ Errore: ${data.error}`, "loss");
+    }
+  } catch(e) {
+    addNotif(`❌ Errore: ${e.message}`, "loss");
+  }
+}
+
 // WEBHOOK
 function simulateWebhook() {
   const btcPrice = state.mids["BTC"] || "67000";
@@ -549,11 +570,13 @@ function renderAll() {
   const renderPos = (pos) => {
     const szi = parseFloat(pos.position.szi);
     const upnl = parseFloat(pos.position.unrealizedPnl);
+    const coin = pos.position.coin;
     return `
       <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #0a1420">
         <span class="badge" style="background:${szi>0?"#00ff9515":"#ff4d6d15"};color:${szi>0?"#00ff95":"#ff4d6d"};border:1px solid ${szi>0?"#00ff9530":"#ff4d6d30"}">${szi>0?"LONG":"SHORT"}</span>
-        <span style="font-size:13px;color:#e2e8f0;flex:1">${pos.position.coin}</span>
-        <span style="font-size:11px;color:${upnl>=0?"#00ff95":"#ff4d6d"}">${upnl>=0?"+":""}$${upnl.toFixed(2)}</span>
+        <span style="font-size:13px;color:#e2e8f0;flex:1">${coin}</span>
+        <span style="font-size:11px;color:${upnl>=0?"#00ff95":"#ff4d6d"};margin-right:8px">${upnl>=0?"+":""}$${upnl.toFixed(2)}</span>
+        <button onclick="closePosition('${coin}')" style="padding:4px 10px;border-radius:6px;font-size:9px;letter-spacing:1px;background:rgba(255,77,109,0.1);border:1px solid #ff4d6d40;color:#ff4d6d;cursor:pointer;font-family:monospace">✕ CHIUDI</button>
       </div>
     `;
   };
