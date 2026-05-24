@@ -78,6 +78,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
   <button class="nav-btn" onclick="switchTab('order')">⚡ ORDINE</button>
   <button class="nav-btn" onclick="switchTab('webhook')">🔗 WEBHOOK</button>
   <button class="nav-btn" onclick="switchTab('history')">📋 STORICO</button>
+  <button class="nav-btn" onclick="switchTab('bot')">🤖 BOT</button>
   <button class="nav-btn active" onclick="switchTab('settings')">⚙️ CONFIG</button>
 </div>
 
@@ -192,6 +193,39 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
     </div>
   </div>
 
+  <!-- BOT -->
+  <div id="tab-bot" class="tab-content">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:20px">
+      <div class="card" style="padding:20px">
+        <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:14px">STATO BOT</div>
+        <div id="botStatus" style="font-size:18px;font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:#00ff95">CARICAMENTO...</div>
+        <div id="botHours" style="font-size:9px;color:#475569;margin-top:6px"></div>
+        <div style="margin-top:12px;display:flex;gap:8px">
+          <div class="stat-card" style="flex:1;padding:12px">
+            <div class="stat-label">STOP LOSS</div>
+            <div class="stat-value" style="color:#ff4d6d;font-size:16px">-$0.50</div>
+          </div>
+          <div class="stat-card" style="flex:1;padding:12px">
+            <div class="stat-label">TAKE PROFIT</div>
+            <div class="stat-value" style="color:#00ff95;font-size:16px">+$1.00</div>
+          </div>
+          <div class="stat-card" style="flex:1;padding:12px">
+            <div class="stat-label">SIZE</div>
+            <div class="stat-value" style="color:#a78bfa;font-size:16px">$5</div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="padding:20px">
+        <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:14px">COIN MONITORATI</div>
+        <div id="botCoins" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+    <div class="card" style="padding:20px">
+      <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:14px">INDICATORI IN TEMPO REALE</div>
+      <div id="botIndicators" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"></div>
+    </div>
+  </div>
+
   <!-- WEBHOOK -->
   <div id="tab-webhook" class="tab-content">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
@@ -241,13 +275,7 @@ if (state.walletAddress) document.getElementById("walletInput").value = state.wa
 // Webhook template
 document.getElementById("webhookTemplate").textContent = JSON.stringify({ secret: state.webhookSecret, coin: "{{ticker}}", side: "buy", size: "0.01" }, null, 2);
 
-// TAB SWITCHING
-function switchTab(name) {
-  document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
-  document.querySelectorAll(".nav-btn").forEach(el => el.classList.remove("active"));
-  document.getElementById("tab-" + name).classList.add("active");
-  event.target.classList.add("active");
-}
+// TAB SWITCHING handled above
 
 // NOTIFICATIONS
 function addNotif(msg, type) {
@@ -639,6 +667,61 @@ async function checkSlTp() {
       await closePosition(coin, true);
     }
   }
+}
+
+// BOT TAB
+async function loadBotStatus() {
+  try {
+    const res = await fetch(BACKEND_URL + "/");
+    const data = await res.json();
+    
+    const isActive = data.autoTrading && data.autoTrading.includes("attivo");
+    document.getElementById("botStatus").textContent = isActive ? "🟢 ATTIVO" : "🌙 IN PAUSA";
+    document.getElementById("botStatus").style.color = isActive ? "#00ff95" : "#475569";
+    document.getElementById("botHours").textContent = `Orari: ${data.activeHours || "9:00 - 22:00"} · Ora: ${data.currentHour || ""}`;
+    
+    // Coins
+    const coins = data.coins || ["BTC", "ETH", "SOL"];
+    const mids = state.mids;
+    document.getElementById("botCoins").innerHTML = coins.map(coin => {
+      const price = mids[coin] ? "$" + parseFloat(mids[coin]).toLocaleString() : "—";
+      return `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(6,10,15,0.5);border-radius:6px;border:1px solid #0d2035">
+          <span style="font-size:13px;color:#e2e8f0">${coin}</span>
+          <span style="font-size:11px;color:#00ff95">${price}</span>
+          <span style="font-size:9px;color:#475569;padding:2px 8px;background:rgba(0,255,149,0.05);border-radius:10px;border:1px solid #00ff9520">MONITORATO</span>
+        </div>
+      `;
+    }).join("");
+    
+    // Indicators from mids
+    document.getElementById("botIndicators").innerHTML = coins.map(coin => {
+      const price = mids[coin] ? parseFloat(mids[coin]) : 0;
+      return `
+        <div class="stat-card" style="padding:16px">
+          <div style="font-size:12px;color:#e2e8f0;margin-bottom:10px;font-family:'Bebas Neue',sans-serif;letter-spacing:2px">${coin}</div>
+          <div style="font-size:11px;color:#00ff95;margin-bottom:4px">$${price.toLocaleString()}</div>
+          <div style="font-size:9px;color:#475569;margin-top:8px;line-height:1.8">
+            <div>RSI: <span style="color:#a78bfa">calcolato dal bot</span></div>
+            <div>MACD: <span style="color:#a78bfa">calcolato dal bot</span></div>
+            <div>EMA20: <span style="color:#a78bfa">calcolato dal bot</span></div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  } catch(e) {
+    document.getElementById("botStatus").textContent = "⚠️ ERRORE";
+  }
+}
+
+// Load bot status when switching to bot tab
+const origSwitchTab = switchTab;
+function switchTab(name) {
+  document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(el => el.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  event.target.classList.add("active");
+  if (name === "bot") loadBotStatus();
 }
 
 // Auto-connect if wallet saved
