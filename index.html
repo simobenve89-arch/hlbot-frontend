@@ -292,7 +292,14 @@ if (state.walletAddress) document.getElementById("walletInput").value = state.wa
 // Webhook template
 document.getElementById("webhookTemplate").textContent = JSON.stringify({ secret: state.webhookSecret, coin: "{{ticker}}", side: "buy", size: "0.01" }, null, 2);
 
-// TAB SWITCHING handled above
+// TAB SWITCHING
+function switchTab(name) {
+  document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(el => el.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  event.target.classList.add("active");
+  if (name === "bot") loadBotStatus();
+}
 
 // NOTIFICATIONS
 function addNotif(msg, type) {
@@ -764,15 +771,7 @@ async function loadBotStatus() {
   }
 }
 
-// Load bot status when switching to bot tab
-const origSwitchTab = switchTab;
-function switchTab(name) {
-  document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
-  document.querySelectorAll(".nav-btn").forEach(el => el.classList.remove("active"));
-  document.getElementById("tab-" + name).classList.add("active");
-  event.target.classList.add("active");
-  if (name === "bot") loadBotStatus();
-}
+
 
 // Auto-connect if wallet saved
 if (state.walletAddress && state.walletAddress.startsWith("0x") && state.walletAddress.length === 42) {
