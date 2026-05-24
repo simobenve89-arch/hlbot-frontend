@@ -543,7 +543,8 @@ function renderAll() {
   const accountValue = totalValue > 0 ? totalValue.toFixed(2) : "0.00";
 
   const headerVal = document.getElementById("headerValue");
-  headerVal.textContent = "$" + parseFloat(accountValue).toLocaleString();
+  const withdrawable2 = parseFloat(p?.state?.withdrawable || 0);
+  headerVal.textContent = "💰 $" + withdrawable2.toFixed(2) + " liberi";
   headerVal.style.display = "block";
 
   const headerStatus = document.getElementById("headerStatus");
@@ -566,10 +567,13 @@ function renderAll() {
   document.getElementById("dashNotConnected").style.display = "none";
   document.getElementById("dashConnected").style.display = "block";
 
+  const withdrawable = parseFloat(p?.state?.withdrawable || 0);
+  const marginUsed = perpsValue - withdrawable;
+
   document.getElementById("statGrid").innerHTML = [
-    { label: "ACCOUNT VALUE", value: "$" + parseFloat(accountValue).toLocaleString(), sub: "margine totale", color: "#00ff95" },
+    { label: "SALDO LIBERO", value: "$" + withdrawable.toFixed(2), sub: "prelevabile", color: "#00ff95" },
+    { label: "MARGINE USATO", value: "$" + Math.max(0, marginUsed).toFixed(2), sub: openPositions.length + " posizioni aperte", color: "#fb923c" },
     { label: "P&L REALIZZATO", value: (totalPnl >= 0 ? "+" : "") + "$" + totalPnl.toFixed(2), sub: fills.length + " fills (7gg)", color: totalPnl >= 0 ? "#00ff95" : "#ff4d6d" },
-    { label: "P&L NON REALIZ.", value: (unrealizedPnl >= 0 ? "+" : "") + "$" + unrealizedPnl.toFixed(2), sub: openPositions.length + " posizioni", color: unrealizedPnl >= 0 ? "#34d399" : "#f87171" },
     { label: "WIN RATE", value: winRate + "%", sub: winFills.length + "W / " + (fills.length - winFills.length) + "L", color: "#a78bfa" }
   ].map(s => `
     <div class="stat-card">
