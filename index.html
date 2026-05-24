@@ -33,7 +33,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
 .nav-btn.active { color: #00ff95; border-bottom-color: #00ff95; }
 .main { padding: 24px; position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
 .card { background: rgba(13,18,30,0.85); border: 1px solid #0d2035; border-radius: 10px; }
-.stat-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 20px; }
+.stat-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; margin-bottom: 20px; }
 .stat-card { background: rgba(13,18,30,0.85); border: 1px solid #0d2035; border-radius: 10px; padding: 16px 18px; }
 .stat-label { font-size: 9px; color: #334155; letter-spacing: 2px; margin-bottom: 8px; }
 .stat-value { font-size: 20px; font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; line-height: 1; }
@@ -570,8 +570,11 @@ function renderAll() {
   const withdrawable = parseFloat(p?.state?.withdrawable || 0);
   const marginUsed = perpsValue - withdrawable;
 
+  const availableMargin = parseFloat(p?.state?.crossMarginSummary?.accountValue || 0) - parseFloat(p?.state?.crossMarginSummary?.totalMarginUsed || 0);
+
   document.getElementById("statGrid").innerHTML = [
     { label: "SALDO LIBERO", value: "$" + withdrawable.toFixed(2), sub: "prelevabile", color: "#00ff95" },
+    { label: "PER TRADING", value: "$" + Math.max(0, availableMargin).toFixed(2), sub: "margine disponibile", color: "#60a5fa" },
     { label: "MARGINE USATO", value: "$" + Math.max(0, marginUsed).toFixed(2), sub: openPositions.length + " posizioni aperte", color: "#fb923c" },
     { label: "P&L REALIZZATO", value: (totalPnl >= 0 ? "+" : "") + "$" + totalPnl.toFixed(2), sub: fills.length + " fills (7gg)", color: totalPnl >= 0 ? "#00ff95" : "#ff4d6d" },
     { label: "WIN RATE", value: winRate + "%", sub: winFills.length + "W / " + (fills.length - winFills.length) + "L", color: "#a78bfa" }
