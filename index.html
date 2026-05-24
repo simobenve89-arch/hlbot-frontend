@@ -99,6 +99,23 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
         </div>
       </div>
     </div>
+    <div style="max-width:600px;margin-top:16px">
+      <div class="card" style="padding:22px">
+        <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:18px">CAPITALE INIZIALE</div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div>
+            <div style="font-size:9px;color:#334155;margin-bottom:6px">QUANTO HAI DEPOSITATO? ($)</div>
+            <input type="number" id="capitalInput" placeholder="es. 100" step="0.01" min="0" />
+          </div>
+          <button onclick="saveCapital()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(96,165,250,0.1);border:1px solid #60a5fa50;color:#60a5fa;cursor:pointer;font-family:monospace">💾 SALVA CAPITALE</button>
+          <div id="capitalMsg" style="display:none;font-size:11px;color:#00ff95;padding:8px 12px;background:rgba(0,255,149,0.06);border-radius:6px">✅ Capitale salvato!</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:none"><!-- spacer
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- DASHBOARD -->
@@ -418,6 +435,17 @@ async function handleOrder() {
   setOrderSide(state.orderSide);
 }
 
+// SAVE CAPITAL
+function saveCapital() {
+  const val = document.getElementById("capitalInput").value;
+  if (!val || parseFloat(val) <= 0) return;
+  try { localStorage.setItem("hl_capital", val); } catch {}
+  const msg = document.getElementById("capitalMsg");
+  msg.style.display = "block";
+  setTimeout(() => msg.style.display = "none", 3000);
+  renderAll();
+}
+
 // CLOSE POSITION
 async function closePosition(coin, silent = false) {
   if (!silent && !confirm(`Chiudere posizione ${coin}?`)) return;
@@ -571,14 +599,29 @@ function renderAll() {
   const marginUsed = perpsValue - withdrawable;
 
   const availableMargin = parseFloat(p?.state?.crossMarginSummary?.accountValue || 0) - parseFloat(p?.state?.crossMarginSummary?.totalMarginUsed || 0);
+  
+  let capitalCard = null;
+  try {
+    const savedCapital = parseFloat(localStorage.getItem("hl_capital") || "0");
+    if (savedCapital > 0) {
+      const profit = totalAccountValue - savedCapital;
+      capitalCard = [
+        { label: "CAPITALE", value: "$" + savedCapital.toFixed(2), sub: "depositato", color: "#60a5fa" },
+        { label: "GUADAGNI BOT", value: (profit >= 0 ? "+" : "") + "$" + profit.toFixed(2), sub: "dal deposito", color: profit >= 0 ? "#00ff95" : "#ff4d6d" },
+      ];
+    }
+  } catch {}
 
-  document.getElementById("statGrid").innerHTML = [
+  const baseCards = [
     { label: "SALDO LIBERO", value: "$" + withdrawable.toFixed(2), sub: "prelevabile", color: "#00ff95" },
-    { label: "PER TRADING", value: "$" + Math.max(0, availableMargin).toFixed(2), sub: "margine disponibile", color: "#60a5fa" },
-    { label: "MARGINE USATO", value: "$" + Math.max(0, marginUsed).toFixed(2), sub: openPositions.length + " posizioni aperte", color: "#fb923c" },
+    { label: "PER TRADING", value: "$" + Math.max(0, availableMargin).toFixed(2), sub: "margine disponibile", color: "#a78bfa" },
+    { label: "MARGINE USATO", value: "$" + Math.max(0, marginUsed).toFixed(2), sub: openPositions.length + " posizioni", color: "#fb923c" },
     { label: "P&L REALIZZATO", value: (totalPnl >= 0 ? "+" : "") + "$" + totalPnl.toFixed(2), sub: fills.length + " fills (7gg)", color: totalPnl >= 0 ? "#00ff95" : "#ff4d6d" },
-    { label: "WIN RATE", value: winRate + "%", sub: winFills.length + "W / " + (fills.length - winFills.length) + "L", color: "#a78bfa" }
-  ].map(s => `
+    { label: "WIN RATE", value: winRate + "%", sub: winFills.length + "W / " + (fills.length - winFills.length) + "L", color: "#60a5fa" }
+  ];
+
+  const allCards = capitalCard ? [...capitalCard, ...baseCards] : baseCards;
+  document.getElementById("statGrid").innerHTML = allCards.map(s => `
     <div class="stat-card">
       <div class="stat-label">${s.label}</div>
       <div class="stat-value" style="color:${s.color}">${s.value}</div>
