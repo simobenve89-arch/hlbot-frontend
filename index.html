@@ -121,7 +121,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
         <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:14px">POSIZIONI APERTE (<span id="posCount">0</span>)</div>
         <div id="positionsList"></div>
       </div>
-      <div id="lastUpdate" style="font-size:9px;color:#334155;text-align:right;margin-top:10px"></div>
+      <div style="margin-top:16px;text-align:center"><a href="https://app.hyperliquid.xyz/portfolio" target="_blank" style="display:inline-block;padding:10px 28px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(0,255,149,0.08);border:1px solid #00ff9540;color:#00ff95;text-decoration:none;font-family:monospace">💸 WITHDRAW</a></div><div id="lastUpdate" style="font-size:9px;color:#334155;text-align:right;margin-top:10px"></div>
     </div>
   </div>
 
@@ -391,8 +391,8 @@ async function handleOrder() {
 }
 
 // CLOSE POSITION
-async function closePosition(coin) {
-  if (!confirm(`Chiudere posizione ${coin}?`)) return;
+async function closePosition(coin, silent = false) {
+  if (!silent && !confirm(`Chiudere posizione ${coin}?`)) return;
   try {
     const res = await fetch(BACKEND_URL + "/close", {
       method: "POST",
@@ -622,6 +622,25 @@ function renderAll() {
   }
 }
 
+// STOP LOSS / TAKE PROFIT
+const SL_TP = { sl: -0.50, tp: 1.00 };
+
+async function checkSlTp() {
+  if (!state.connected) return;
+  const openPositions = state.portfolio?.state?.assetPositions?.filter(p => parseFloat(p.position?.szi || 0) !== 0) || [];
+  for (const pos of openPositions) {
+    const upnl = parseFloat(pos.position.unrealizedPnl || 0);
+    const coin = pos.position.coin;
+    if (upnl <= SL_TP.sl) {
+      addNotif("🛑 Stop Loss " + coin + "! P&L: $" + upnl.toFixed(2), "loss");
+      await closePosition(coin, true);
+    } else if (upnl >= SL_TP.tp) {
+      addNotif("🎯 Take Profit " + coin + "! P&L: +$" + upnl.toFixed(2), "win");
+      await closePosition(coin, true);
+    }
+  }
+}
+
 // Auto-connect if wallet saved
 if (state.walletAddress && state.walletAddress.startsWith("0x") && state.walletAddress.length === 42) {
   loadData(state.walletAddress).then(() => {
@@ -631,7 +650,7 @@ if (state.walletAddress && state.walletAddress.startsWith("0x") && state.walletA
     document.querySelectorAll(".nav-btn").forEach(el => el.classList.remove("active"));
     document.getElementById("tab-dashboard").classList.add("active");
     document.querySelectorAll(".nav-btn")[0].classList.add("active");
-    state.refreshInterval = setInterval(() => loadData(), 15000);
+    state.refreshInterval = setInterval(() => { loadData(); checkSlTp(); }, 15000);
   }).catch(() => {});
 }
 </script>
