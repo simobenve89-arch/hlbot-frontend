@@ -233,11 +233,11 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
         <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
           <div class="stat-card" style="padding:10px;text-align:center">
             <div class="stat-label">STOP LOSS</div>
-            <div style="font-size:16px;font-family:'Bebas Neue',sans-serif;color:#ff4d6d">-$0.50</div>
+            <div id="botSL" style="font-size:16px;font-family:'Bebas Neue',sans-serif;color:#ff4d6d">-$0.50</div>
           </div>
           <div class="stat-card" style="padding:10px;text-align:center">
             <div class="stat-label">TAKE PROFIT</div>
-            <div style="font-size:16px;font-family:'Bebas Neue',sans-serif;color:#00ff95">+$1.00</div>
+            <div id="botTP" style="font-size:16px;font-family:'Bebas Neue',sans-serif;color:#00ff95">+$1.00</div>
           </div>
           <div class="stat-card" style="padding:10px;text-align:center">
             <div class="stat-label">SIZE</div>
@@ -576,6 +576,10 @@ async function loadBotStatus() {
       const price = state.mids[coin] ? "$" + parseFloat(state.mids[coin]).toLocaleString() : "—";
       return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(6,10,15,0.5);border-radius:6px;border:1px solid #0d2035"><span style="font-size:13px;color:#e2e8f0">${coin}</span><span style="font-size:11px;color:#00ff95">${price}</span><span style="font-size:9px;color:#475569;padding:2px 8px;background:rgba(0,255,149,0.05);border-radius:10px;border:1px solid #00ff9520">MONITORATO</span></div>`;
     }).join("");
+    // Update SL/TP display
+    if (data.stopLoss) document.getElementById("botSL").textContent = "-$" + Math.abs(data.stopLoss).toFixed(2);
+    if (data.takeProfit) document.getElementById("botTP").textContent = "+$" + data.takeProfit.toFixed(2);
+
     document.getElementById("botIndicators").innerHTML = coins.map(coin => {
       const price = state.mids[coin] ? parseFloat(state.mids[coin]) : 0;
       return `<div class="stat-card" style="padding:16px"><div style="font-size:12px;color:#e2e8f0;margin-bottom:10px;font-family:'Bebas Neue',sans-serif;letter-spacing:2px">${coin}</div><div style="font-size:14px;color:#00ff95;margin-bottom:4px">$${price.toLocaleString()}</div><div style="font-size:9px;color:#475569;margin-top:8px;line-height:2"><div>RSI: <span style="color:#a78bfa">dal bot</span></div><div>MACD: <span style="color:#a78bfa">dal bot</span></div><div>EMA20: <span style="color:#a78bfa">dal bot</span></div></div></div>`;
