@@ -389,13 +389,30 @@ async function handleConnect() {
   btn.disabled = false;
 }
 
-function saveLeverage() {
+async function saveLeverage() {
   const val = document.getElementById("leverageAutoSlider").value;
   try { localStorage.setItem("hl_leverage", val); } catch {}
+  const btn = document.querySelector("[onclick='saveLeverage()']");
+  if (btn) { btn.textContent = "⏳ AGGIORNAMENTO..."; btn.disabled = true; }
+  try {
+    const res = await fetch(BACKEND_URL + "/leverage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ leverage: parseInt(val) })
+    });
+    const data = await res.json();
+    if (data.success) {
+      addNotif("✅ Leva " + val + "x impostata su Hyperliquid!", "win");
+    } else {
+      addNotif("❌ Errore: " + data.error, "loss");
+    }
+  } catch(e) {
+    addNotif("❌ Errore connessione", "loss");
+  }
+  if (btn) { btn.textContent = "💾 SALVA LEVA"; btn.disabled = false; }
   const msg = document.getElementById("leverageMsg");
   msg.style.display = "block";
   setTimeout(() => msg.style.display = "none", 3000);
-  addNotif("✅ Leva impostata a " + val + "x", "win");
 }
 
 function saveCapital() {
