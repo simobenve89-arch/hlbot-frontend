@@ -100,6 +100,27 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
       </div>
 
       <div class="card" style="padding:22px;margin-top:16px">
+        <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:18px">STOP LOSS & TAKE PROFIT</div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <div style="font-size:9px;color:#334155">STOP LOSS</div>
+              <div id="slDisplay" style="font-size:18px;font-family:'Bebas Neue',sans-serif;color:#ff4d6d;letter-spacing:2px">-$0.50</div>
+            </div>
+            <input type="range" id="slSlider" min="10" max="500" value="50" oninput="document.getElementById('slDisplay').textContent='-$'+(this.value/100).toFixed(2)" />
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <div style="font-size:9px;color:#334155">TAKE PROFIT</div>
+              <div id="tpDisplay" style="font-size:18px;font-family:'Bebas Neue',sans-serif;color:#00ff95;letter-spacing:2px">+$1.00</div>
+            </div>
+            <input type="range" id="tpSlider" min="25" max="1000" value="100" oninput="document.getElementById('tpDisplay').textContent='+$'+(this.value/100).toFixed(2)" />
+          </div>
+          <button onclick="saveSettings()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(0,255,149,0.1);border:1px solid #00ff9550;color:#00ff95;cursor:pointer;font-family:monospace">💾 SALVA SL/TP</button>
+          <div id="settingsMsg" style="display:none;font-size:11px;color:#00ff95;padding:8px 12px;background:rgba(0,255,149,0.06);border-radius:6px">✅ Impostazioni salvate!</div>
+        </div>
+      </div>
+      <div class="card" style="padding:22px;margin-top:16px">
         <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:18px">LEVA BOT AUTOMATICO</div>
         <div style="display:flex;flex-direction:column;gap:12px">
           <div>
@@ -303,6 +324,20 @@ try {
   document.getElementById("leverageAutoDisplay").textContent = savedLev + "x";
 } catch {}
 
+// Load current SL/TP from backend
+fetch(BACKEND_URL + "/").then(r => r.json()).then(data => {
+  if (data.stopLoss) {
+    const slVal = Math.abs(data.stopLoss) * 100;
+    document.getElementById("slSlider").value = slVal;
+    document.getElementById("slDisplay").textContent = "-$" + Math.abs(data.stopLoss).toFixed(2);
+  }
+  if (data.takeProfit) {
+    const tpVal = data.takeProfit * 100;
+    document.getElementById("tpSlider").value = tpVal;
+    document.getElementById("tpDisplay").textContent = "+$" + data.takeProfit.toFixed(2);
+  }
+}).catch(() => {});
+
 document.getElementById("webhookTemplate").textContent = JSON.stringify({ secret: state.webhookSecret, coin: "{{ticker}}", side: "buy", size: "0.01" }, null, 2);
 
 function switchTab(name, e) {
@@ -387,6 +422,31 @@ async function handleConnect() {
     btn.textContent = "→ CONNETTI";
   }
   btn.disabled = false;
+}
+
+async function saveSettings() {
+  const sl = -(document.getElementById("slSlider").value / 100);
+  const tp = document.getElementById("tpSlider").value / 100;
+  const btn = document.querySelector("[onclick='saveSettings()']");
+  if (btn) { btn.textContent = "⏳ SALVATAGGIO..."; btn.disabled = true; }
+  try {
+    const res = await fetch(BACKEND_URL + "/settings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ stopLoss: sl, takeProfit: tp })
+    });
+    const data = await res.json();
+    if (data.success) {
+      addNotif("✅ SL: -$" + Math.abs(sl).toFixed(2) + " | TP: +$" + tp.toFixed(2), "win");
+      document.getElementById("settingsMsg").style.display = "block";
+      setTimeout(() => document.getElementById("settingsMsg").style.display = "none", 3000);
+    } else {
+      addNotif("❌ Errore: " + data.error, "loss");
+    }
+  } catch(e) {
+    addNotif("❌ Errore connessione", "loss");
+  }
+  if (btn) { btn.textContent = "💾 SALVA SL/TP"; btn.disabled = false; }
 }
 
 async function saveLeverage() {
