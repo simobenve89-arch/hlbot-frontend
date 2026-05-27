@@ -412,45 +412,37 @@ function saveSettings() {
   var sl = -(document.getElementById("slSlider").value / 100);
   var tp = document.getElementById("tpSlider").value / 100;
   try { localStorage.setItem("hl_sl", sl); localStorage.setItem("hl_tp", tp); } catch(e) {}
-  var btn = document.getElementById("saveSettingsBtn");
-  if (btn) { btn.textContent = "⏳ SALVATAGGIO..."; btn.disabled = true; }
+  
+  // Show confirmation immediately
+  addNotif("✅ SL: -$" + Math.abs(sl).toFixed(2) + " | TP: +$" + tp.toFixed(2), "win");
+  var msg = document.getElementById("settingsMsg");
+  msg.style.display = "block";
+  setTimeout(function() { msg.style.display = "none"; }, 3000);
+  
+  // Send to backend in background
   fetch(BACKEND_URL + "/settings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ stopLoss: sl, takeProfit: tp })
-  }).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.success) {
-      addNotif("✅ SL: -$" + Math.abs(sl).toFixed(2) + " | TP: +$" + tp.toFixed(2), "win");
-      document.getElementById("settingsMsg").style.display = "block";
-      setTimeout(function() { document.getElementById("settingsMsg").style.display = "none"; }, 3000);
-    }
-  }).catch(function() {
-    addNotif("❌ Errore connessione", "loss");
-  }).then(function() {
-    if (btn) { btn.textContent = "💾 SALVA SL/TP"; btn.disabled = false; }
-  });
+  }).catch(function() {});
 }
 
 function saveLeverage() {
   var val = document.getElementById("leverageSlider").value;
   try { localStorage.setItem("hl_leverage", val); } catch(e) {}
-  var btn = document.getElementById("saveLeverageBtn");
-  if (btn) { btn.textContent = "⏳ AGGIORNAMENTO..."; btn.disabled = true; }
+  
+  // Show confirmation immediately
+  addNotif("✅ Leva " + val + "x impostata!", "win");
+  var msg = document.getElementById("leverageMsg");
+  msg.style.display = "block";
+  setTimeout(function() { msg.style.display = "none"; }, 3000);
+  
+  // Send to backend in background
   fetch(BACKEND_URL + "/leverage", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ leverage: parseInt(val) })
-  }).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.success) {
-      addNotif("✅ Leva " + val + "x impostata!", "win");
-      document.getElementById("leverageMsg").style.display = "block";
-      setTimeout(function() { document.getElementById("leverageMsg").style.display = "none"; }, 3000);
-    }
-  }).catch(function() {
-    addNotif("❌ Errore connessione", "loss");
-  }).then(function() {
-    if (btn) { btn.textContent = "💾 SALVA LEVA"; btn.disabled = false; }
-  });
+  }).catch(function() {});
 }
 
 function setOrderSide(side) {
