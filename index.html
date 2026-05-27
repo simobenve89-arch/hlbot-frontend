@@ -293,6 +293,16 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
 const BACKEND_URL = "https://hlbot-backend.onrender.com";
 const HL_API = "https://api.hyperliquid.xyz/info";
 
+window.onerror = function(msg, src, line, col, err) {
+  console.error("ERROR at line " + line + ":", msg);
+  const errDiv = document.createElement("div");
+  errDiv.style.cssText = "position:fixed;top:60px;left:10px;right:10px;background:#ff000088;color:white;padding:10px;font-size:11px;z-index:9999;border-radius:6px";
+  errDiv.textContent = "JS Error line " + line + ": " + msg;
+  document.body.appendChild(errDiv);
+  setTimeout(() => errDiv.remove(), 10000);
+  return false;
+};
+
 let state = {
   connected: false,
   walletAddress: "",
@@ -321,19 +331,19 @@ try {
   document.getElementById("leverageAutoDisplay").textContent = savedLev + "x";
 } catch {}
 
-// Load current SL/TP from backend
-fetch(BACKEND_URL + "/").then(r => r.json()).then(data => {
-  if (data.stopLoss) {
-    const slVal = Math.abs(data.stopLoss) * 100;
-    document.getElementById("slSlider").value = slVal;
-    document.getElementById("slDisplay").textContent = "-$" + Math.abs(data.stopLoss).toFixed(2);
+// Load SL/TP from localStorage
+try {
+  const savedSL = localStorage.getItem("hl_sl");
+  const savedTP = localStorage.getItem("hl_tp");
+  if (savedSL) {
+    document.getElementById("slSlider").value = Math.abs(parseFloat(savedSL)) * 100;
+    document.getElementById("slDisplay").textContent = "-$" + Math.abs(parseFloat(savedSL)).toFixed(2);
   }
-  if (data.takeProfit) {
-    const tpVal = data.takeProfit * 100;
-    document.getElementById("tpSlider").value = tpVal;
-    document.getElementById("tpDisplay").textContent = "+$" + data.takeProfit.toFixed(2);
+  if (savedTP) {
+    document.getElementById("tpSlider").value = parseFloat(savedTP) * 100;
+    document.getElementById("tpDisplay").textContent = "+$" + parseFloat(savedTP).toFixed(2);
   }
-}).catch(() => {});
+} catch {}
 
 document.getElementById("webhookTemplate").textContent = JSON.stringify({ secret: state.webhookSecret, coin: "{{ticker}}", side: "buy", size: "0.01" }, null, 2);
 
@@ -424,6 +434,7 @@ async function handleConnect() {
 async function saveSettings() {
   const sl = -(document.getElementById("slSlider").value / 100);
   const tp = document.getElementById("tpSlider").value / 100;
+  try { localStorage.setItem("hl_sl", sl); localStorage.setItem("hl_tp", tp); } catch {}
   const btn = document.querySelector("[onclick='saveSettings()']");
   if (btn) { btn.textContent = "⏳ SALVATAGGIO..."; btn.disabled = true; }
   try {
