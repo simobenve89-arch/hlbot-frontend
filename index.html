@@ -663,8 +663,6 @@ function renderAll() {
   document.getElementById("dashNotConnected").style.display = "none";
   document.getElementById("dashConnected").style.display = "block";
 
-  const withdrawable = parseFloat(p?.state?.withdrawable || 0);
-
   const cards = [
     { label: "VALORE USDC", value: "$" + totalAccountValue.toFixed(2), sub: "saldo totale", color: "#00ff95" },
     { label: "SALDO DISPONIBILE", value: "$" + withdrawable.toFixed(2), sub: "libero per trading", color: "#60a5fa" },
