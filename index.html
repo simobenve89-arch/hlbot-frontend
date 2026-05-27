@@ -111,7 +111,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
             </div>
             <input type="range" id="tpSlider" min="25" max="1000" value="100" oninput="document.getElementById('tpDisplay').textContent='+$'+(this.value/100).toFixed(2)" />
           </div>
-          <button onclick="saveSettings()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(0,255,149,0.1);border:1px solid #00ff9550;color:#00ff95">💾 SALVA SL/TP</button>
+          <button id="saveSettingsBtn" onclick="saveSettings()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(0,255,149,0.1);border:1px solid #00ff9550;color:#00ff95">💾 SALVA SL/TP</button>
           <div id="settingsMsg" style="display:none;font-size:11px;color:#00ff95;padding:8px 12px;background:rgba(0,255,149,0.06);border-radius:6px">✅ Impostazioni salvate!</div>
         </div>
       </div>
@@ -125,7 +125,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
             </div>
             <input type="range" id="leverageSlider" min="1" max="50" value="20" oninput="document.getElementById('leverageDisplay').textContent=this.value+'x'" />
           </div>
-          <button onclick="saveLeverage()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(251,146,60,0.1);border:1px solid #fb923c50;color:#fb923c">💾 SALVA LEVA</button>
+          <button id="saveLeverageBtn" onclick="saveLeverage()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(251,146,60,0.1);border:1px solid #fb923c50;color:#fb923c">💾 SALVA LEVA</button>
           <div id="leverageMsg" style="display:none;font-size:11px;color:#00ff95;padding:8px 12px;background:rgba(0,255,149,0.06);border-radius:6px">✅ Leva salvata!</div>
         </div>
       </div>
@@ -412,7 +412,7 @@ function saveSettings() {
   var sl = -(document.getElementById("slSlider").value / 100);
   var tp = document.getElementById("tpSlider").value / 100;
   try { localStorage.setItem("hl_sl", sl); localStorage.setItem("hl_tp", tp); } catch(e) {}
-  var btn = document.querySelector("#tab-settings button[onclick='saveSettings()']");
+  var btn = document.getElementById("saveSettingsBtn");
   if (btn) { btn.textContent = "⏳ SALVATAGGIO..."; btn.disabled = true; }
   fetch(BACKEND_URL + "/settings", {
     method: "POST",
@@ -434,7 +434,7 @@ function saveSettings() {
 function saveLeverage() {
   var val = document.getElementById("leverageSlider").value;
   try { localStorage.setItem("hl_leverage", val); } catch(e) {}
-  var btn = document.querySelector("#tab-settings button[onclick='saveLeverage()']");
+  var btn = document.getElementById("saveLeverageBtn");
   if (btn) { btn.textContent = "⏳ AGGIORNAMENTO..."; btn.disabled = true; }
   fetch(BACKEND_URL + "/leverage", {
     method: "POST",
