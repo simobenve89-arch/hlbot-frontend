@@ -313,10 +313,7 @@ let state = {
 try { state.walletAddress = localStorage.getItem("hl_wallet") || ""; } catch {}
 if (state.walletAddress) document.getElementById("walletInput").value = state.walletAddress;
 
-try {
-  const savedCapital = localStorage.getItem("hl_capital");
-  if (savedCapital) document.getElementById("capitalInput").value = savedCapital;
-} catch {}
+
 
 try {
   const savedLev = localStorage.getItem("hl_leverage") || "20";
@@ -475,15 +472,7 @@ async function saveLeverage() {
   setTimeout(() => msg.style.display = "none", 3000);
 }
 
-function saveCapital() {
-  const val = document.getElementById("capitalInput").value;
-  if (!val || parseFloat(val) <= 0) return;
-  try { localStorage.setItem("hl_capital", val); } catch {}
-  const msg = document.getElementById("capitalMsg");
-  msg.style.display = "block";
-  setTimeout(() => msg.style.display = "none", 3000);
-  renderAll();
-}
+
 
 function setOrderSide(side) {
   state.orderSide = side;
