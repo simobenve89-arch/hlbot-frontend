@@ -642,7 +642,17 @@ function renderAll() {
 
   const pricesEl = document.getElementById("headerPrices");
   pricesEl.style.display = "flex";
-  pricesEl.innerHTML = Object.entries(mids).slice(0,5).map(([coin, price]) => `<span style="font-size:10px"><span style="color:#475569">${coin} </span><span style="color:#00ff95">$${parseFloat(price).toLocaleString()}</span></span>`).join("");
+  // Track previous prices for % change
+  if (!window.prevMids) window.prevMids = {};
+  pricesEl.innerHTML = Object.entries(mids).slice(0,5).map(([coin, price]) => {
+    const curr = parseFloat(price);
+    const prev = window.prevMids[coin] || curr;
+    const pct = ((curr - prev) / prev * 100).toFixed(2);
+    const pctColor = pct >= 0 ? "#00ff95" : "#ff4d6d";
+    const pctStr = pct >= 0 ? "+" + pct + "%" : pct + "%";
+    return `<span style="font-size:10px"><span style="color:#475569">${coin} </span><span style="color:#e2e8f0">$${curr.toLocaleString()}</span><span style="color:${pctColor};font-size:9px;margin-left:3px">${pctStr}</span></span>`;
+  }).join("");
+  window.prevMids = {...mids};
 
   const totalPnl = fills.reduce((a, f) => a + parseFloat(f.closedPnl || 0), 0);
   const openPositions = p?.state?.assetPositions?.filter(pos => parseFloat(pos.position?.szi || 0) !== 0) || [];
@@ -676,8 +686,12 @@ function renderAll() {
   const renderPos = (pos) => {
     const szi = parseFloat(pos.position.szi);
     const upnl = parseFloat(pos.position.unrealizedPnl);
+    const entryPx = parseFloat(pos.position.entryPx || 0);
     const coin = pos.position.coin;
-    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #0a1420"><span class="badge" style="background:${szi>0?"#00ff9515":"#ff4d6d15"};color:${szi>0?"#00ff95":"#ff4d6d"};border:1px solid ${szi>0?"#00ff9530":"#ff4d6d30"}">${szi>0?"LONG":"SHORT"}</span><span style="font-size:13px;color:#e2e8f0;flex:1">${coin}</span><span style="font-size:11px;color:${upnl>=0?"#00ff95":"#ff4d6d"};margin-right:8px">${upnl>=0?"+":""}$${upnl.toFixed(2)}</span><button onclick="closePosition('${coin}')" style="padding:4px 10px;border-radius:6px;font-size:9px;letter-spacing:1px;background:rgba(255,77,109,0.1);border:1px solid #ff4d6d40;color:#ff4d6d;cursor:pointer;font-family:monospace">✕ CHIUDI</button></div>`;
+    const posValue = Math.abs(szi) * entryPx;
+    const pct = posValue > 0 ? ((upnl / posValue) * 100).toFixed(2) : "0.00";
+    const color = upnl >= 0 ? "#00ff95" : "#ff4d6d";
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #0a1420"><span class="badge" style="background:${szi>0?"#00ff9515":"#ff4d6d15"};color:${szi>0?"#00ff95":"#ff4d6d"};border:1px solid ${szi>0?"#00ff9530":"#ff4d6d30"}">${szi>0?"LONG":"SHORT"}</span><span style="font-size:13px;color:#e2e8f0;flex:1">${coin}</span><div style="text-align:right;margin-right:8px"><div style="font-size:11px;color:${color}">${upnl>=0?"+":""}$${upnl.toFixed(2)}</div><div style="font-size:9px;color:${color};opacity:0.8">${upnl>=0?"+":""}${pct}%</div></div><button onclick="closePosition('${coin}')" style="padding:4px 10px;border-radius:6px;font-size:9px;letter-spacing:1px;background:rgba(255,77,109,0.1);border:1px solid #ff4d6d40;color:#ff4d6d;cursor:pointer;font-family:monospace">✕ CHIUDI</button></div>`;
   };
   document.getElementById("positionsList").innerHTML = openPositions.length === 0 ? '<div style="color:#334155;font-size:11px;text-align:center;padding:24px">Nessuna posizione aperta</div>' : openPositions.slice(0,5).map(renderPos).join("");
   document.getElementById("allPositionsList").innerHTML = openPositions.length === 0 ? '<div style="color:#334155;font-size:11px;text-align:center;padding:40px">Nessuna posizione aperta</div>' : openPositions.map(renderPos).join("");
