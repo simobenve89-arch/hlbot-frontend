@@ -631,17 +631,9 @@ function renderAll() {
 
   const pricesEl = document.getElementById("headerPrices");
   pricesEl.style.display = "flex";
-  // Track previous prices for % change
-  if (!window.prevMids) window.prevMids = {};
   pricesEl.innerHTML = Object.entries(mids).slice(0,5).map(([coin, price]) => {
-    const curr = parseFloat(price);
-    const prev = window.prevMids[coin] || curr;
-    const pct = ((curr - prev) / prev * 100).toFixed(2);
-    const pctColor = pct >= 0 ? "#00ff95" : "#ff4d6d";
-    const pctStr = pct >= 0 ? "+" + pct + "%" : pct + "%";
-    return `<span style="font-size:10px"><span style="color:#475569">${coin} </span><span style="color:#e2e8f0">$${curr.toLocaleString()}</span><span style="color:${pctColor};font-size:9px;margin-left:3px">${pctStr}</span></span>`;
+    return `<span style="font-size:10px"><span style="color:#475569">${coin} </span><span style="color:#00ff95">$${parseFloat(price).toLocaleString()}</span></span>`;
   }).join("");
-  window.prevMids = {...mids};
 
   const totalPnl = fills.reduce((a, f) => a + parseFloat(f.closedPnl || 0), 0);
   const openPositions = p?.state?.assetPositions?.filter(pos => parseFloat(pos.position?.szi || 0) !== 0) || [];
