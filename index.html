@@ -33,7 +33,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
 .nav-btn.active { color: #00ff95; border-bottom-color: #00ff95; }
 .main { padding: 24px; position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
 .card { background: rgba(13,18,30,0.85); border: 1px solid #0d2035; border-radius: 10px; }
-.stat-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; margin-bottom: 20px; }
+.stat-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 20px; }
 .stat-card { background: rgba(13,18,30,0.85); border: 1px solid #0d2035; border-radius: 10px; padding: 16px 18px; }
 .stat-label { font-size: 9px; color: #334155; letter-spacing: 2px; margin-bottom: 8px; }
 .stat-value { font-size: 20px; font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px; line-height: 1; }
@@ -636,7 +636,7 @@ function renderAll() {
 
   // Header
   const headerVal = document.getElementById("headerValue");
-  headerVal.textContent = "$" + totalAccountValue.toFixed(2);
+  headerVal.textContent = "$" + totalAccountValue.toFixed(2) + " · 💧 $" + parseFloat(p?.state?.withdrawable || 0).toFixed(2);
   headerVal.style.display = "block";
   document.getElementById("headerStatus").innerHTML = '<span class="pulse" style="color:#00ff95">● LIVE</span>';
 
@@ -663,9 +663,11 @@ function renderAll() {
   document.getElementById("dashNotConnected").style.display = "none";
   document.getElementById("dashConnected").style.display = "block";
 
-  // Simple 2 cards
+  const withdrawable = parseFloat(p?.state?.withdrawable || 0);
+
   const cards = [
-    { label: "VALORE CONTO", value: "$" + totalAccountValue.toFixed(2), sub: "aggiornato da Hyperliquid", color: "#00ff95" },
+    { label: "VALORE USDC", value: "$" + totalAccountValue.toFixed(2), sub: "saldo totale", color: "#00ff95" },
+    { label: "SALDO DISPONIBILE", value: "$" + withdrawable.toFixed(2), sub: "libero per trading", color: "#60a5fa" },
     { label: "P&L REALIZZATO", value: (totalPnl >= 0 ? "+" : "") + "$" + totalPnl.toFixed(2), sub: fills.length + " fills (7gg)", color: totalPnl >= 0 ? "#00ff95" : "#ff4d6d" },
   ];
 
