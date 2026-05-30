@@ -412,14 +412,10 @@ function saveSettings() {
   var sl = -(document.getElementById("slSlider").value / 100);
   var tp = document.getElementById("tpSlider").value / 100;
   try { localStorage.setItem("hl_sl", sl); localStorage.setItem("hl_tp", tp); } catch(e) {}
-  
-  // Show confirmation immediately
   addNotif("✅ SL: -$" + Math.abs(sl).toFixed(2) + " | TP: +$" + tp.toFixed(2), "win");
   var msg = document.getElementById("settingsMsg");
   msg.style.display = "block";
   setTimeout(function() { msg.style.display = "none"; }, 3000);
-  
-  // Send to backend
   fetch(BACKEND_URL + "/settings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -438,14 +434,10 @@ function saveSettings() {
 function saveLeverage() {
   var val = document.getElementById("leverageSlider").value;
   try { localStorage.setItem("hl_leverage", val); } catch(e) {}
-  
-  // Show confirmation immediately
   addNotif("✅ Leva " + val + "x impostata!", "win");
   var msg = document.getElementById("leverageMsg");
   msg.style.display = "block";
   setTimeout(function() { msg.style.display = "none"; }, 3000);
-  
-  // Send to backend in background
   fetch(BACKEND_URL + "/leverage", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -592,6 +584,29 @@ function drawChart(canvas, data, positive) {
   });
 }
 
+// ── FIX: calcolo ROE reale (con leva) ────────────────────────────────────────
+function calcPct(upnl, szi, entryPx, leverageObj) {
+  var posValue = Math.abs(szi) * entryPx;
+  var leverage = parseFloat((leverageObj && leverageObj.value) || 1);
+  var margin = leverage > 0 ? posValue / leverage : posValue;
+  return margin > 0 ? ((upnl / margin) * 100).toFixed(2) : "0.00";
+}
+
+function renderPositionRow(pos, withClose) {
+  var szi = parseFloat(pos.position.szi);
+  var upnl = parseFloat(pos.position.unrealizedPnl);
+  var entryPx = parseFloat(pos.position.entryPx || 0);
+  var coin = pos.position.coin;
+  var pct = calcPct(upnl, szi, entryPx, pos.position.leverage);
+  var color = upnl >= 0 ? "#00ff95" : "#ff4d6d";
+  var closeBtn = withClose ? '<button onclick="closePosition(\'' + coin + '\')" style="padding:4px 10px;border-radius:6px;font-size:9px;letter-spacing:1px;background:rgba(255,77,109,0.1);border:1px solid #ff4d6d40;color:#ff4d6d">✕ CHIUDI</button>' : '';
+  return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #0a1420">' +
+    '<span class="badge" style="background:' + (szi>0?"#00ff9515":"#ff4d6d15") + ';color:' + (szi>0?"#00ff95":"#ff4d6d") + ';border:1px solid ' + (szi>0?"#00ff9530":"#ff4d6d30") + '">' + (szi>0?"LONG":"SHORT") + '</span>' +
+    '<span style="font-size:13px;color:#e2e8f0;flex:1">' + coin + '</span>' +
+    '<div style="text-align:right;margin-right:8px"><div style="font-size:11px;color:' + color + '">' + (upnl>=0?"+":"") + '$' + upnl.toFixed(2) + '</div><div style="font-size:9px;color:' + color + ';opacity:0.8">' + (upnl>=0?"+":"") + pct + '% ROE</div></div>' +
+    closeBtn + '</div>';
+}
+
 function renderAll() {
   var p = appState.portfolio;
   var fills = appState.fills;
@@ -645,37 +660,16 @@ function renderAll() {
   } else { canvas.style.display = "none"; noChart.style.display = "flex"; }
 
   document.getElementById("posCount").textContent = openPositions.length;
-  var posHtml = openPositions.length === 0 ? '<div style="color:#334155;font-size:11px;text-align:center;padding:24px">Nessuna posizione aperta</div>' :
-    openPositions.slice(0,5).map(function(pos) {
-      var szi = parseFloat(pos.position.szi);
-      var upnl = parseFloat(pos.position.unrealizedPnl);
-      var entryPx = parseFloat(pos.position.entryPx || 0);
-      var coin = pos.position.coin;
-      var posValue = Math.abs(szi) * entryPx;
-      var pct = posValue > 0 ? ((upnl / posValue) * 100).toFixed(2) : "0.00";
-      var color = upnl >= 0 ? "#00ff95" : "#ff4d6d";
-      return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #0a1420">' +
-        '<span class="badge" style="background:' + (szi>0?"#00ff9515":"#ff4d6d15") + ';color:' + (szi>0?"#00ff95":"#ff4d6d") + ';border:1px solid ' + (szi>0?"#00ff9530":"#ff4d6d30") + '">' + (szi>0?"LONG":"SHORT") + '</span>' +
-        '<span style="font-size:13px;color:#e2e8f0;flex:1">' + coin + '</span>' +
-        '<div style="text-align:right;margin-right:8px"><div style="font-size:11px;color:' + color + '">' + (upnl>=0?"+":"") + '$' + upnl.toFixed(2) + '</div><div style="font-size:9px;color:' + color + ';opacity:0.8">' + (upnl>=0?"+":"") + pct + '%</div></div>' +
-        '<button onclick="closePosition(\'' + coin + '\')" style="padding:4px 10px;border-radius:6px;font-size:9px;letter-spacing:1px;background:rgba(255,77,109,0.1);border:1px solid #ff4d6d40;color:#ff4d6d">✕ CHIUDI</button></div>';
-    }).join("");
-  document.getElementById("positionsList").innerHTML = posHtml;
-  document.getElementById("allPositionsList").innerHTML = openPositions.length === 0 ? '<div style="color:#334155;font-size:11px;text-align:center;padding:40px">Nessuna posizione aperta</div>' :
-    openPositions.map(function(pos) {
-      var szi = parseFloat(pos.position.szi);
-      var upnl = parseFloat(pos.position.unrealizedPnl);
-      var entryPx = parseFloat(pos.position.entryPx || 0);
-      var coin = pos.position.coin;
-      var posValue = Math.abs(szi) * entryPx;
-      var pct = posValue > 0 ? ((upnl / posValue) * 100).toFixed(2) : "0.00";
-      var color = upnl >= 0 ? "#00ff95" : "#ff4d6d";
-      return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #0a1420">' +
-        '<span class="badge" style="background:' + (szi>0?"#00ff9515":"#ff4d6d15") + ';color:' + (szi>0?"#00ff95":"#ff4d6d") + ';border:1px solid ' + (szi>0?"#00ff9530":"#ff4d6d30") + '">' + (szi>0?"LONG":"SHORT") + '</span>' +
-        '<span style="font-size:13px;color:#e2e8f0;flex:1">' + coin + '</span>' +
-        '<div style="text-align:right;margin-right:8px"><div style="font-size:11px;color:' + color + '">' + (upnl>=0?"+":"") + '$' + upnl.toFixed(2) + '</div><div style="font-size:9px;color:' + color + ';opacity:0.8">' + (upnl>=0?"+":"") + pct + '%</div></div>' +
-        '<button onclick="closePosition(\'' + coin + '\')" style="padding:4px 10px;border-radius:6px;font-size:9px;letter-spacing:1px;background:rgba(255,77,109,0.1);border:1px solid #ff4d6d40;color:#ff4d6d">✕ CHIUDI</button></div>';
-    }).join("");
+
+  // Dashboard posizioni (max 5)
+  document.getElementById("positionsList").innerHTML = openPositions.length === 0
+    ? '<div style="color:#334155;font-size:11px;text-align:center;padding:24px">Nessuna posizione aperta</div>'
+    : openPositions.slice(0,5).map(function(pos) { return renderPositionRow(pos, true); }).join("");
+
+  // Tab posizioni (tutte)
+  document.getElementById("allPositionsList").innerHTML = openPositions.length === 0
+    ? '<div style="color:#334155;font-size:11px;text-align:center;padding:40px">Nessuna posizione aperta</div>'
+    : openPositions.map(function(pos) { return renderPositionRow(pos, true); }).join("");
 
   document.getElementById("fillsCount").textContent = fills.length;
   document.getElementById("fillsList").innerHTML = fills.length === 0 ? '<div style="text-align:center;padding:60px;color:#334155;font-size:12px">Nessun trade negli ultimi 7 giorni</div>' :
