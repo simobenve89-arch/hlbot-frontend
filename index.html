@@ -419,12 +419,20 @@ function saveSettings() {
   msg.style.display = "block";
   setTimeout(function() { msg.style.display = "none"; }, 3000);
   
-  // Send to backend in background
+  // Send to backend
   fetch(BACKEND_URL + "/settings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ stopLoss: sl, takeProfit: tp })
-  }).catch(function() {});
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.success) {
+      addNotif("✅ Backend aggiornato! SL=" + data.stopLoss + " TP=" + data.takeProfit, "win");
+    } else {
+      addNotif("❌ Backend error: " + JSON.stringify(data), "loss");
+    }
+  }).catch(function(e) {
+    addNotif("❌ Fetch error: " + e.message, "loss");
+  });
 }
 
 function saveLeverage() {
