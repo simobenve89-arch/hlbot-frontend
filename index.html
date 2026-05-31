@@ -170,6 +170,19 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
     </div>
     <div id="dashConnected" style="display:none">
       <div class="stat-grid" id="statGrid"></div>
+      <div class="card" style="padding:16px;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:10px;color:#475569;letter-spacing:2px">FEAR & GREED INDEX</div>
+          <div id="fgValue" style="font-size:20px;font-family:'Bebas Neue',sans-serif;color:#94a3b8;letter-spacing:2px">😐 --</div>
+        </div>
+        <div style="background:#0d2035;border-radius:4px;height:6px;overflow:hidden;margin-bottom:6px">
+          <div id="fgBar" style="height:100%;width:50%;background:linear-gradient(90deg,#ff4d6d,#fb923c,#facc15,#00ff95);border-radius:4px;transition:width 0.5s"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:9px;color:#334155">
+          <span>😱 Paura</span><span id="fgLabel" style="color:#94a3b8">Caricamento...</span><span>🤑 Avidità</span>
+        </div>
+      </div>
+
       <div class="card" style="padding:20px;margin-bottom:20px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
           <div style="font-size:10px;color:#475569;letter-spacing:2px">EQUITY CURVE</div>
