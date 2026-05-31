@@ -653,7 +653,7 @@ function renderAll() {
   }
   var spotValue = parseFloat((spotUsdc && spotUsdc.total) || 0);
   var totalAccountValue = perpsValue + spotValue;
-  var withdrawable = parseFloat((p && p.state && p.state.withdrawable) || 0);
+  var withdrawable = parseFloat((p && p.state && p.state.crossMarginSummary && p.state.crossMarginSummary.availableBalance) || (p && p.state && p.state.withdrawable) || 0);
 
   document.getElementById("headerValue").textContent = "$" + totalAccountValue.toFixed(2) + " · 💧 $" + withdrawable.toFixed(2);
   document.getElementById("headerValue").style.display = "block";
