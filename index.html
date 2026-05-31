@@ -23,8 +23,6 @@ button { cursor: pointer; font-family: monospace; }
 .notif { animation: slideIn 0.35s cubic-bezier(.16,1,.3,1); }
 .scanline { position:fixed;left:0;right:0;height:1px;background:linear-gradient(transparent,rgba(0,255,149,0.06),transparent);pointer-events:none;z-index:9999;animation:scan 10s linear infinite;top:0; }
 .grid-bg { position:fixed;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(0,255,149,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,149,0.025) 1px,transparent 1px);background-size:48px 48px; }
-input[type=range] { -webkit-appearance:none;height:3px;background:linear-gradient(90deg,#00ff95,#1e4a8a);border-radius:2px;outline:none;cursor:pointer;padding:0; }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#00ff95;box-shadow:0 0 8px #00ff9580;cursor:pointer; }
 .tab-content { display: none; }
 .tab-content.active { display: block; animation: fadeUp 0.3s ease both; }
 .header { border-bottom: 1px solid #0d2035; background: rgba(6,10,15,0.97); padding: 0 24px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; height: 58px; }
@@ -42,6 +40,17 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
 .notif-item { border-radius: 8px; padding: 9px 14px; font-size: 11px; backdrop-filter: blur(12px); white-space: pre-line; }
 .badge { font-size: 8px; padding: 2px 7px; border-radius: 10px; }
 .fills-row { display: grid; grid-template-columns: 80px 1fr 100px 100px 100px 90px; padding: 11px 20px; font-size: 11px; border-bottom: 1px solid #080f1a; align-items: center; }
+
+/* Controlli +/- */
+.pct-control { display: flex; align-items: center; gap: 10px; }
+.pct-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid #0d2035; background: rgba(13,18,30,0.9); color: #e2e8f0; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; user-select: none; }
+.pct-btn:active { background: rgba(0,255,149,0.1); }
+.pct-input { background: rgba(13,18,30,0.9); border: 1px solid #0d2035; color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; outline: none; text-align: center; width: 100px; }
+.pct-input:focus { border-color: #00ff9540; }
+
+input[type=range] { -webkit-appearance:none;height:3px;background:linear-gradient(90deg,#00ff95,#1e4a8a);border-radius:2px;outline:none;cursor:pointer;padding:0; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#00ff95;box-shadow:0 0 8px #00ff9580;cursor:pointer; }
+
 @media (max-width: 768px) {
   .stat-grid { grid-template-columns: repeat(2,1fr); }
   .fills-row { grid-template-columns: 60px 1fr 80px 80px; }
@@ -94,27 +103,46 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
           <button id="connectBtn" onclick="handleConnect()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(0,255,149,0.1);border:1px solid #00ff9550;color:#00ff95">→ CONNETTI</button>
         </div>
       </div>
+
+      <!-- SL/TP in % ROE con controlli +/- -->
       <div class="card" style="padding:22px">
-        <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:18px">STOP LOSS & TAKE PROFIT</div>
-        <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:18px">STOP LOSS & TAKE PROFIT (% ROE)</div>
+        <div style="display:flex;flex-direction:column;gap:20px">
+
+          <!-- STOP LOSS -->
           <div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-              <div style="font-size:9px;color:#334155">STOP LOSS</div>
-              <div id="slDisplay" style="font-size:18px;font-family:'Bebas Neue',sans-serif;color:#ff4d6d;letter-spacing:2px">-$0.50</div>
+            <div style="font-size:9px;color:#334155;margin-bottom:10px;letter-spacing:1px">STOP LOSS</div>
+            <div class="pct-control">
+              <button class="pct-btn" onclick="adjustPct('sl', -0.5)" style="border-color:#ff4d6d30;color:#ff4d6d">−</button>
+              <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
+                <input class="pct-input" id="slInput" type="number" value="5" min="0.1" max="100" step="0.5" style="color:#ff4d6d" oninput="validatePct('sl')" />
+                <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#ff4d6d">%</span>
+              </div>
+              <button class="pct-btn" onclick="adjustPct('sl', 0.5)" style="border-color:#ff4d6d30;color:#ff4d6d">+</button>
             </div>
-            <input type="range" id="slSlider" min="10" max="500" value="50" oninput="document.getElementById('slDisplay').textContent='-$'+(this.value/100).toFixed(2)" />
+            <div style="font-size:9px;color:#475569;margin-top:6px;text-align:center">Chiude se ROE scende sotto −<span id="slPreview">5.0</span>%</div>
           </div>
+
+          <!-- TAKE PROFIT -->
           <div>
-            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-              <div style="font-size:9px;color:#334155">TAKE PROFIT</div>
-              <div id="tpDisplay" style="font-size:18px;font-family:'Bebas Neue',sans-serif;color:#00ff95;letter-spacing:2px">+$1.00</div>
+            <div style="font-size:9px;color:#334155;margin-bottom:10px;letter-spacing:1px">TAKE PROFIT</div>
+            <div class="pct-control">
+              <button class="pct-btn" onclick="adjustPct('tp', -0.5)" style="border-color:#00ff9530;color:#00ff95">−</button>
+              <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
+                <input class="pct-input" id="tpInput" type="number" value="10" min="0.1" max="1000" step="0.5" style="color:#00ff95" oninput="validatePct('tp')" />
+                <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#00ff95">%</span>
+              </div>
+              <button class="pct-btn" onclick="adjustPct('tp', 0.5)" style="border-color:#00ff9530;color:#00ff95">+</button>
             </div>
-            <input type="range" id="tpSlider" min="25" max="1000" value="100" oninput="document.getElementById('tpDisplay').textContent='+$'+(this.value/100).toFixed(2)" />
+            <div style="font-size:9px;color:#475569;margin-top:6px;text-align:center">Chiude se ROE sale sopra +<span id="tpPreview">10.0</span>%</div>
           </div>
-          <button id="saveSettingsBtn" onclick="saveSettings()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(0,255,149,0.1);border:1px solid #00ff9550;color:#00ff95">💾 SALVA SL/TP</button>
+
+          <button onclick="saveSettings()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(0,255,149,0.1);border:1px solid #00ff9550;color:#00ff95">💾 SALVA SL/TP</button>
           <div id="settingsMsg" style="display:none;font-size:11px;color:#00ff95;padding:8px 12px;background:rgba(0,255,149,0.06);border-radius:6px">✅ Impostazioni salvate!</div>
         </div>
       </div>
+
+      <!-- LEVA -->
       <div class="card" style="padding:22px">
         <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:18px">LEVA BOT AUTOMATICO</div>
         <div style="display:flex;flex-direction:column;gap:12px">
@@ -125,7 +153,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
             </div>
             <input type="range" id="leverageSlider" min="1" max="50" value="20" oninput="document.getElementById('leverageDisplay').textContent=this.value+'x'" />
           </div>
-          <button id="saveLeverageBtn" onclick="saveLeverage()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(251,146,60,0.1);border:1px solid #fb923c50;color:#fb923c">💾 SALVA LEVA</button>
+          <button onclick="saveLeverage()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(251,146,60,0.1);border:1px solid #fb923c50;color:#fb923c">💾 SALVA LEVA</button>
           <div id="leverageMsg" style="display:none;font-size:11px;color:#00ff95;padding:8px 12px;background:rgba(0,255,149,0.06);border-radius:6px">✅ Leva salvata!</div>
         </div>
       </div>
@@ -225,11 +253,11 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
         <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
           <div class="stat-card" style="padding:10px;text-align:center">
             <div class="stat-label">STOP LOSS</div>
-            <div id="botSL" style="font-size:16px;font-family:'Bebas Neue',sans-serif;color:#ff4d6d">-$0.50</div>
+            <div id="botSL" style="font-size:16px;font-family:'Bebas Neue',sans-serif;color:#ff4d6d">-5%</div>
           </div>
           <div class="stat-card" style="padding:10px;text-align:center">
             <div class="stat-label">TAKE PROFIT</div>
-            <div id="botTP" style="font-size:16px;font-family:'Bebas Neue',sans-serif;color:#00ff95">+$1.00</div>
+            <div id="botTP" style="font-size:16px;font-family:'Bebas Neue',sans-serif;color:#00ff95">+10%</div>
           </div>
           <div class="stat-card" style="padding:10px;text-align:center">
             <div class="stat-label">SIZE</div>
@@ -313,19 +341,32 @@ try {
 } catch(e) {}
 
 try {
-  var savedSL = localStorage.getItem("hl_sl");
-  var savedTP = localStorage.getItem("hl_tp");
-  if (savedSL) {
-    document.getElementById("slSlider").value = Math.abs(parseFloat(savedSL)) * 100;
-    document.getElementById("slDisplay").textContent = "-$" + Math.abs(parseFloat(savedSL)).toFixed(2);
-  }
-  if (savedTP) {
-    document.getElementById("tpSlider").value = parseFloat(savedTP) * 100;
-    document.getElementById("tpDisplay").textContent = "+$" + parseFloat(savedTP).toFixed(2);
-  }
+  var savedSL = localStorage.getItem("hl_sl_pct");
+  var savedTP = localStorage.getItem("hl_tp_pct");
+  if (savedSL) { document.getElementById("slInput").value = savedSL; document.getElementById("slPreview").textContent = parseFloat(savedSL).toFixed(1); }
+  if (savedTP) { document.getElementById("tpInput").value = savedTP; document.getElementById("tpPreview").textContent = parseFloat(savedTP).toFixed(1); }
 } catch(e) {}
 
 document.getElementById("webhookTemplate").textContent = JSON.stringify({ secret: appState.webhookSecret, coin: "{{ticker}}", side: "buy", size: "0.01" }, null, 2);
+
+// ── Controlli +/- percentuale ─────────────────────────────────────────────────
+function adjustPct(type, delta) {
+  var inputId = type === "sl" ? "slInput" : "tpInput";
+  var previewId = type === "sl" ? "slPreview" : "tpPreview";
+  var input = document.getElementById(inputId);
+  var val = parseFloat(input.value) || 0;
+  val = Math.max(0.1, Math.round((val + delta) * 10) / 10);
+  input.value = val;
+  document.getElementById(previewId).textContent = val.toFixed(1);
+}
+
+function validatePct(type) {
+  var inputId = type === "sl" ? "slInput" : "tpInput";
+  var previewId = type === "sl" ? "slPreview" : "tpPreview";
+  var val = parseFloat(document.getElementById(inputId).value) || 0;
+  if (val < 0) val = Math.abs(val);
+  document.getElementById(previewId).textContent = val.toFixed(1);
+}
 
 function switchTab(name, btn) {
   document.querySelectorAll(".tab-content").forEach(function(el) { el.classList.remove("active"); });
@@ -403,32 +444,28 @@ function handleConnect() {
     errEl.textContent = "Connessione fallita: " + e.message;
     errEl.style.display = "block";
     btn.textContent = "→ CONNETTI";
-  }).then(function() {
-    btn.disabled = false;
-  });
+  }).then(function() { btn.disabled = false; });
 }
 
 function saveSettings() {
-  var sl = -(document.getElementById("slSlider").value / 100);
-  var tp = document.getElementById("tpSlider").value / 100;
-  try { localStorage.setItem("hl_sl", sl); localStorage.setItem("hl_tp", tp); } catch(e) {}
-  addNotif("✅ SL: -$" + Math.abs(sl).toFixed(2) + " | TP: +$" + tp.toFixed(2), "win");
+  var slVal = Math.abs(parseFloat(document.getElementById("slInput").value) || 5);
+  var tpVal = Math.abs(parseFloat(document.getElementById("tpInput").value) || 10);
+  var sl = -slVal;
+  var tp = tpVal;
+  try { localStorage.setItem("hl_sl_pct", slVal); localStorage.setItem("hl_tp_pct", tpVal); } catch(e) {}
+  addNotif("✅ SL: -" + slVal.toFixed(1) + "% ROE | TP: +" + tpVal.toFixed(1) + "% ROE", "win");
   var msg = document.getElementById("settingsMsg");
   msg.style.display = "block";
   setTimeout(function() { msg.style.display = "none"; }, 3000);
   fetch(BACKEND_URL + "/settings", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ stopLoss: sl, takeProfit: tp })
+    body: JSON.stringify({ stopLossPct: sl, takeProfitPct: tp })
   }).then(function(r) { return r.json(); }).then(function(data) {
     if (data.success) {
-      addNotif("✅ Backend aggiornato! SL=" + data.stopLoss + " TP=" + data.takeProfit, "win");
-    } else {
-      addNotif("❌ Backend error: " + JSON.stringify(data), "loss");
+      addNotif("✅ Backend: SL=" + data.stopLossPct + "% TP=+" + data.takeProfitPct + "%", "win");
     }
-  }).catch(function(e) {
-    addNotif("❌ Fetch error: " + e.message, "loss");
-  });
+  }).catch(function(e) { addNotif("❌ Errore: " + e.message, "loss"); });
 }
 
 function saveLeverage() {
@@ -492,10 +529,7 @@ function handleOrder() {
   }).catch(function(e) {
     resultEl.style.cssText = "display:block;font-size:10px;padding:12px 14px;border-radius:8px;background:rgba(255,77,109,0.06);border:1px solid #ff4d6d20;color:#ff4d6d";
     resultEl.textContent = "❌ Errore: " + e.message;
-  }).then(function() {
-    btn.disabled = false;
-    setOrderSide(appState.orderSide);
-  });
+  }).then(function() { btn.disabled = false; setOrderSide(appState.orderSide); });
 }
 
 function closePosition(coin) {
@@ -530,8 +564,8 @@ function loadBotStatus() {
     document.getElementById("botStatus").textContent = isActive ? "🟢 ATTIVO" : "🌙 IN PAUSA";
     document.getElementById("botStatus").style.color = isActive ? "#00ff95" : "#64748b";
     document.getElementById("botHours").textContent = "Orari: " + (data.activeHours || "9:00 - 22:00") + " · Ora IT: " + (data.currentHour || "");
-    if (data.stopLoss) document.getElementById("botSL").textContent = "-$" + Math.abs(data.stopLoss).toFixed(2);
-    if (data.takeProfit) document.getElementById("botTP").textContent = "+$" + data.takeProfit.toFixed(2);
+    if (data.stopLossPct !== undefined) document.getElementById("botSL").textContent = "-" + Math.abs(data.stopLossPct).toFixed(1) + "% ROE";
+    if (data.takeProfitPct !== undefined) document.getElementById("botTP").textContent = "+" + data.takeProfitPct.toFixed(1) + "% ROE";
     var coins = data.coins || ["BTC", "ETH", "SOL"];
     document.getElementById("botCoins").innerHTML = coins.map(function(coin) {
       var price = appState.mids[coin] ? "$" + parseFloat(appState.mids[coin]).toLocaleString() : "—";
@@ -584,7 +618,6 @@ function drawChart(canvas, data, positive) {
   });
 }
 
-// ── FIX: calcolo ROE reale (con leva) ────────────────────────────────────────
 function calcPct(upnl, szi, entryPx, leverageObj) {
   var posValue = Math.abs(szi) * entryPx;
   var leverage = parseFloat((leverageObj && leverageObj.value) || 1);
@@ -622,9 +655,8 @@ function renderAll() {
   var totalAccountValue = perpsValue + spotValue;
   var withdrawable = parseFloat((p && p.state && p.state.withdrawable) || 0);
 
-  var headerVal = document.getElementById("headerValue");
-  headerVal.textContent = "$" + totalAccountValue.toFixed(2) + " · 💧 $" + withdrawable.toFixed(2);
-  headerVal.style.display = "block";
+  document.getElementById("headerValue").textContent = "$" + totalAccountValue.toFixed(2) + " · 💧 $" + withdrawable.toFixed(2);
+  document.getElementById("headerValue").style.display = "block";
   document.getElementById("headerStatus").innerHTML = '<span class="pulse" style="color:#00ff95">● LIVE</span>';
 
   var pricesEl = document.getElementById("headerPrices");
@@ -660,13 +692,9 @@ function renderAll() {
   } else { canvas.style.display = "none"; noChart.style.display = "flex"; }
 
   document.getElementById("posCount").textContent = openPositions.length;
-
-  // Dashboard posizioni (max 5)
   document.getElementById("positionsList").innerHTML = openPositions.length === 0
     ? '<div style="color:#334155;font-size:11px;text-align:center;padding:24px">Nessuna posizione aperta</div>'
     : openPositions.slice(0,5).map(function(pos) { return renderPositionRow(pos, true); }).join("");
-
-  // Tab posizioni (tutte)
   document.getElementById("allPositionsList").innerHTML = openPositions.length === 0
     ? '<div style="color:#334155;font-size:11px;text-align:center;padding:40px">Nessuna posizione aperta</div>'
     : openPositions.map(function(pos) { return renderPositionRow(pos, true); }).join("");
@@ -700,7 +728,6 @@ function renderAll() {
   }
 }
 
-// Auto-connect
 if (appState.walletAddress && appState.walletAddress.startsWith("0x") && appState.walletAddress.length === 42) {
   loadData(appState.walletAddress).then(function() {
     appState.connected = true;
