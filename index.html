@@ -678,6 +678,25 @@ function renderAll() {
   document.getElementById("dashNotConnected").style.display = "none";
   document.getElementById("dashConnected").style.display = "block";
 
+
+  // DEBUG VISIVO - rimuovere dopo fix
+  var debugEl = document.getElementById("debugSaldo");
+  if (!debugEl) {
+    debugEl = document.createElement("div");
+    debugEl.id = "debugSaldo";
+    debugEl.style.cssText = "background:rgba(255,255,0,0.05);border:1px solid #ff0;border-radius:8px;padding:12px;margin-bottom:16px;font-size:9px;color:#ff0;line-height:2;word-break:break-all";
+    document.getElementById("statGrid").parentNode.insertBefore(debugEl, document.getElementById("statGrid"));
+  }
+  debugEl.innerHTML = "<div style='font-size:10px;margin-bottom:6px;letter-spacing:2px'>🔍 DEBUG SALDO</div>" +
+    "withdrawable: " + (p && p.state && p.state.withdrawable) + "<br>" +
+    "ms.accountValue: " + ms.accountValue + "<br>" +
+    "ms.totalMarginUsed: " + ms.totalMarginUsed + "<br>" +
+    "ms.availableBalance: " + ms.availableBalance + "<br>" +
+    "cms.availableBalance: " + cms.availableBalance + "<br>" +
+    "acctVal-marginUsed: " + (acctVal - marginUsed).toFixed(4) + "<br>" +
+    "spotUsdc.total: " + (spotUsdc && spotUsdc.total) + "<br>" +
+    "spotUsdc.hold: " + (spotUsdc && spotUsdc.hold);
+
   document.getElementById("statGrid").innerHTML = [
     { label: "VALORE USDC", value: "$" + totalAccountValue.toFixed(2), sub: "saldo totale", color: "#00ff95" },
     { label: "SALDO DISPONIBILE", value: "$" + withdrawable.toFixed(2), sub: "libero per trading", color: "#60a5fa" },
