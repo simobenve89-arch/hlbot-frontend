@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>HL BOT v1.0</title>
+<title>HL BOT v2.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
@@ -40,17 +40,13 @@ button { cursor: pointer; font-family: monospace; }
 .notif-item { border-radius: 8px; padding: 9px 14px; font-size: 11px; backdrop-filter: blur(12px); white-space: pre-line; }
 .badge { font-size: 8px; padding: 2px 7px; border-radius: 10px; }
 .fills-row { display: grid; grid-template-columns: 80px 1fr 100px 100px 100px 90px; padding: 11px 20px; font-size: 11px; border-bottom: 1px solid #080f1a; align-items: center; }
-
-/* Controlli +/- */
 .pct-control { display: flex; align-items: center; gap: 10px; }
 .pct-btn { width: 36px; height: 36px; border-radius: 8px; border: 1px solid #0d2035; background: rgba(13,18,30,0.9); color: #e2e8f0; font-size: 18px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; user-select: none; }
 .pct-btn:active { background: rgba(0,255,149,0.1); }
 .pct-input { background: rgba(13,18,30,0.9); border: 1px solid #0d2035; color: #e2e8f0; padding: 8px 12px; border-radius: 6px; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; outline: none; text-align: center; width: 100px; }
 .pct-input:focus { border-color: #00ff9540; }
-
 input[type=range] { -webkit-appearance:none;height:3px;background:linear-gradient(90deg,#00ff95,#1e4a8a);border-radius:2px;outline:none;cursor:pointer;padding:0; }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#00ff95;box-shadow:0 0 8px #00ff9580;cursor:pointer; }
-
 @media (max-width: 768px) {
   .stat-grid { grid-template-columns: repeat(2,1fr); }
   .fills-row { grid-template-columns: 60px 1fr 80px 80px; }
@@ -67,7 +63,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
     <div style="display:flex;align-items:baseline;gap:8px">
       <span style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:#00ff95">HL</span>
       <span style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;color:#e2e8f0">BOT</span>
-      <span style="font-size:9px;color:#1e4a8a;letter-spacing:2px">v1.0</span>
+      <span style="font-size:9px;color:#1e4a8a;letter-spacing:2px">v2.0</span>
     </div>
     <div id="headerPrices" style="display:none;gap:16px;padding-left:20px;border-left:1px solid #0d2035"></div>
   </div>
@@ -104,45 +100,50 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
         </div>
       </div>
 
-      <!-- SL/TP in % ROE con controlli +/- -->
       <div class="card" style="padding:22px">
         <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:18px">STOP LOSS & TAKE PROFIT (% ROE)</div>
         <div style="display:flex;flex-direction:column;gap:20px">
-
-          <!-- STOP LOSS -->
           <div>
-            <div style="font-size:9px;color:#334155;margin-bottom:10px;letter-spacing:1px">STOP LOSS</div>
+            <div style="font-size:9px;color:#334155;margin-bottom:10px">STOP LOSS</div>
             <div class="pct-control">
-              <button class="pct-btn" onclick="adjustPct('sl', -0.5)" style="border-color:#ff4d6d30;color:#ff4d6d">−</button>
+              <button class="pct-btn" onclick="adjustPct('sl',-0.5)" style="border-color:#ff4d6d30;color:#ff4d6d">−</button>
               <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
                 <input class="pct-input" id="slInput" type="number" value="5" min="0.1" max="100" step="0.5" style="color:#ff4d6d" oninput="validatePct('sl')" />
                 <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#ff4d6d">%</span>
               </div>
-              <button class="pct-btn" onclick="adjustPct('sl', 0.5)" style="border-color:#ff4d6d30;color:#ff4d6d">+</button>
+              <button class="pct-btn" onclick="adjustPct('sl',0.5)" style="border-color:#ff4d6d30;color:#ff4d6d">+</button>
             </div>
             <div style="font-size:9px;color:#475569;margin-top:6px;text-align:center">Chiude se ROE scende sotto −<span id="slPreview">5.0</span>%</div>
           </div>
-
-          <!-- TAKE PROFIT -->
           <div>
-            <div style="font-size:9px;color:#334155;margin-bottom:10px;letter-spacing:1px">TAKE PROFIT</div>
+            <div style="font-size:9px;color:#334155;margin-bottom:10px">TAKE PROFIT</div>
             <div class="pct-control">
-              <button class="pct-btn" onclick="adjustPct('tp', -0.5)" style="border-color:#00ff9530;color:#00ff95">−</button>
+              <button class="pct-btn" onclick="adjustPct('tp',-0.5)" style="border-color:#00ff9530;color:#00ff95">−</button>
               <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
                 <input class="pct-input" id="tpInput" type="number" value="10" min="0.1" max="1000" step="0.5" style="color:#00ff95" oninput="validatePct('tp')" />
                 <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#00ff95">%</span>
               </div>
-              <button class="pct-btn" onclick="adjustPct('tp', 0.5)" style="border-color:#00ff9530;color:#00ff95">+</button>
+              <button class="pct-btn" onclick="adjustPct('tp',0.5)" style="border-color:#00ff9530;color:#00ff95">+</button>
             </div>
             <div style="font-size:9px;color:#475569;margin-top:6px;text-align:center">Chiude se ROE sale sopra +<span id="tpPreview">10.0</span>%</div>
           </div>
-
-          <button onclick="saveSettings()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(0,255,149,0.1);border:1px solid #00ff9550;color:#00ff95">💾 SALVA SL/TP</button>
+          <div>
+            <div style="font-size:9px;color:#334155;margin-bottom:10px">TRAILING STOP (retrocesso dal massimo)</div>
+            <div class="pct-control">
+              <button class="pct-btn" onclick="adjustPct('ts',-0.5)" style="border-color:#fb923c30;color:#fb923c">−</button>
+              <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px">
+                <input class="pct-input" id="tsInput" type="number" value="2" min="0.1" max="50" step="0.5" style="color:#fb923c" oninput="validatePct('ts')" />
+                <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fb923c">%</span>
+              </div>
+              <button class="pct-btn" onclick="adjustPct('ts',0.5)" style="border-color:#fb923c30;color:#fb923c">+</button>
+            </div>
+            <div style="font-size:9px;color:#475569;margin-top:6px;text-align:center">Chiude se ROE scende di <span id="tsPreview">2.0</span>% dal massimo</div>
+          </div>
+          <button onclick="saveSettings()" style="padding:10px 24px;border-radius:8px;font-size:11px;letter-spacing:2px;background:rgba(0,255,149,0.1);border:1px solid #00ff9550;color:#00ff95">💾 SALVA IMPOSTAZIONI</button>
           <div id="settingsMsg" style="display:none;font-size:11px;color:#00ff95;padding:8px 12px;background:rgba(0,255,149,0.06);border-radius:6px">✅ Impostazioni salvate!</div>
         </div>
       </div>
 
-      <!-- LEVA -->
       <div class="card" style="padding:22px">
         <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:18px">LEVA BOT AUTOMATICO</div>
         <div style="display:flex;flex-direction:column;gap:12px">
@@ -253,15 +254,15 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
         <div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
           <div class="stat-card" style="padding:10px;text-align:center">
             <div class="stat-label">STOP LOSS</div>
-            <div id="botSL" style="font-size:16px;font-family:'Bebas Neue',sans-serif;color:#ff4d6d">-5%</div>
+            <div id="botSL" style="font-size:14px;font-family:'Bebas Neue',sans-serif;color:#ff4d6d">-5%</div>
           </div>
           <div class="stat-card" style="padding:10px;text-align:center">
             <div class="stat-label">TAKE PROFIT</div>
-            <div id="botTP" style="font-size:16px;font-family:'Bebas Neue',sans-serif;color:#00ff95">+10%</div>
+            <div id="botTP" style="font-size:14px;font-family:'Bebas Neue',sans-serif;color:#00ff95">+10%</div>
           </div>
           <div class="stat-card" style="padding:10px;text-align:center">
-            <div class="stat-label">SIZE</div>
-            <div style="font-size:16px;font-family:'Bebas Neue',sans-serif;color:#a78bfa">$5</div>
+            <div class="stat-label">TRAILING</div>
+            <div id="botTS" style="font-size:14px;font-family:'Bebas Neue',sans-serif;color:#fb923c">2%</div>
           </div>
         </div>
       </div>
@@ -314,23 +315,12 @@ var BACKEND_URL = "https://hlbot-backend.onrender.com";
 var HL_API = "https://api.hyperliquid.xyz/info";
 
 var appState = {
-  connected: false,
-  walletAddress: "",
-  portfolio: null,
-  fills: [],
-  mids: {},
-  meta: null,
-  pnlHistory: [],
-  lastUpdate: null,
-  orderSide: "buy",
-  orderType: "market",
-  webhookLog: [],
-  webhookSecret: "MY_SECRET_" + Math.random().toString(36).slice(2,8).toUpperCase(),
-  notifId: 0,
-  refreshInterval: null
+  connected: false, walletAddress: "", portfolio: null, fills: [], mids: {}, meta: null,
+  pnlHistory: [], lastUpdate: null, orderSide: "buy", orderType: "market",
+  webhookLog: [], webhookSecret: "MY_SECRET_" + Math.random().toString(36).slice(2,8).toUpperCase(),
+  notifId: 0, refreshInterval: null
 };
 
-// Init
 try { appState.walletAddress = localStorage.getItem("hl_wallet") || ""; } catch(e) {}
 if (appState.walletAddress) document.getElementById("walletInput").value = appState.walletAddress;
 
@@ -343,29 +333,26 @@ try {
 try {
   var savedSL = localStorage.getItem("hl_sl_pct");
   var savedTP = localStorage.getItem("hl_tp_pct");
+  var savedTS = localStorage.getItem("hl_ts_pct");
   if (savedSL) { document.getElementById("slInput").value = savedSL; document.getElementById("slPreview").textContent = parseFloat(savedSL).toFixed(1); }
   if (savedTP) { document.getElementById("tpInput").value = savedTP; document.getElementById("tpPreview").textContent = parseFloat(savedTP).toFixed(1); }
+  if (savedTS) { document.getElementById("tsInput").value = savedTS; document.getElementById("tsPreview").textContent = parseFloat(savedTS).toFixed(1); }
 } catch(e) {}
 
 document.getElementById("webhookTemplate").textContent = JSON.stringify({ secret: appState.webhookSecret, coin: "{{ticker}}", side: "buy", size: "0.01" }, null, 2);
 
-// ── Controlli +/- percentuale ─────────────────────────────────────────────────
 function adjustPct(type, delta) {
-  var inputId = type === "sl" ? "slInput" : "tpInput";
-  var previewId = type === "sl" ? "slPreview" : "tpPreview";
-  var input = document.getElementById(inputId);
-  var val = parseFloat(input.value) || 0;
-  val = Math.max(0.1, Math.round((val + delta) * 10) / 10);
+  var ids = { sl: ["slInput","slPreview"], tp: ["tpInput","tpPreview"], ts: ["tsInput","tsPreview"] };
+  var input = document.getElementById(ids[type][0]);
+  var val = Math.max(0.1, Math.round((parseFloat(input.value) + delta) * 10) / 10);
   input.value = val;
-  document.getElementById(previewId).textContent = val.toFixed(1);
+  document.getElementById(ids[type][1]).textContent = val.toFixed(1);
 }
 
 function validatePct(type) {
-  var inputId = type === "sl" ? "slInput" : "tpInput";
-  var previewId = type === "sl" ? "slPreview" : "tpPreview";
-  var val = parseFloat(document.getElementById(inputId).value) || 0;
-  if (val < 0) val = Math.abs(val);
-  document.getElementById(previewId).textContent = val.toFixed(1);
+  var ids = { sl: ["slInput","slPreview"], tp: ["tpInput","tpPreview"], ts: ["tsInput","tsPreview"] };
+  var val = Math.abs(parseFloat(document.getElementById(ids[type][0]).value) || 0);
+  document.getElementById(ids[type][1]).textContent = val.toFixed(1);
 }
 
 function switchTab(name, btn) {
@@ -377,8 +364,7 @@ function switchTab(name, btn) {
 }
 
 function addNotif(msg, type) {
-  appState.notifId++;
-  var colors = { win: ["rgba(0,255,149,0.08)", "#00ff9530", "#00ff95"], loss: ["rgba(255,77,109,0.08)", "#ff4d6d30", "#ff4d6d"], info: ["rgba(96,165,250,0.08)", "#60a5fa30", "#60a5fa"] };
+  var colors = { win: ["rgba(0,255,149,0.08)","#00ff9530","#00ff95"], loss: ["rgba(255,77,109,0.08)","#ff4d6d30","#ff4d6d"], info: ["rgba(96,165,250,0.08)","#60a5fa30","#60a5fa"] };
   var c = colors[type] || colors.info;
   var el = document.createElement("div");
   el.className = "notif-item notif";
@@ -389,10 +375,7 @@ function addNotif(msg, type) {
 }
 
 function hlPost(payload) {
-  return fetch(HL_API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function(r) {
-    if (!r.ok) throw new Error("HTTP " + r.status);
-    return r.json();
-  });
+  return fetch(HL_API, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) }).then(function(r) { return r.json(); });
 }
 
 function loadData(addr) {
@@ -408,7 +391,7 @@ function loadData(addr) {
     hlPost({ type: "meta" })
   ]).then(function(results) {
     appState.portfolio = results[0];
-    appState.fills = Array.isArray(results[1]) ? results[1].slice(0, 100) : [];
+    appState.fills = Array.isArray(results[1]) ? results[1].slice(0,100) : [];
     appState.mids = results[2];
     appState.meta = results[3];
     appState.lastUpdate = new Date();
@@ -416,7 +399,7 @@ function loadData(addr) {
       var cum = 0;
       appState.pnlHistory = results[1].slice().reverse().map(function(f) {
         cum += parseFloat(f.closedPnl || 0);
-        return { label: new Date(f.time).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }), v: +cum.toFixed(2) };
+        return { label: new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}), v: +cum.toFixed(2) };
       });
     }
     renderAll();
@@ -432,8 +415,7 @@ function handleConnect() {
   var btn = document.getElementById("connectBtn");
   btn.textContent = "CONNESSIONE..."; btn.disabled = true;
   loadData(addr).then(function() {
-    appState.walletAddress = addr;
-    appState.connected = true;
+    appState.walletAddress = addr; appState.connected = true;
     try { localStorage.setItem("hl_wallet", addr); } catch(e) {}
     addNotif("✅ Connesso a Hyperliquid", "win");
     btn.textContent = "↺ RICONNETTI";
@@ -441,31 +423,25 @@ function handleConnect() {
     if (appState.refreshInterval) clearInterval(appState.refreshInterval);
     appState.refreshInterval = setInterval(function() { loadData(); }, 15000);
   }).catch(function(e) {
-    errEl.textContent = "Connessione fallita: " + e.message;
-    errEl.style.display = "block";
-    btn.textContent = "→ CONNETTI";
+    errEl.textContent = "Connessione fallita: " + e.message; errEl.style.display = "block"; btn.textContent = "→ CONNETTI";
   }).then(function() { btn.disabled = false; });
 }
 
 function saveSettings() {
   var slVal = Math.abs(parseFloat(document.getElementById("slInput").value) || 5);
   var tpVal = Math.abs(parseFloat(document.getElementById("tpInput").value) || 10);
-  var sl = -slVal;
-  var tp = tpVal;
-  try { localStorage.setItem("hl_sl_pct", slVal); localStorage.setItem("hl_tp_pct", tpVal); } catch(e) {}
-  addNotif("✅ SL: -" + slVal.toFixed(1) + "% ROE | TP: +" + tpVal.toFixed(1) + "% ROE", "win");
+  var tsVal = Math.abs(parseFloat(document.getElementById("tsInput").value) || 2);
+  try { localStorage.setItem("hl_sl_pct", slVal); localStorage.setItem("hl_tp_pct", tpVal); localStorage.setItem("hl_ts_pct", tsVal); } catch(e) {}
+  addNotif("✅ SL:-" + slVal.toFixed(1) + "% TP:+" + tpVal.toFixed(1) + "% TS:" + tsVal.toFixed(1) + "%", "win");
   var msg = document.getElementById("settingsMsg");
   msg.style.display = "block";
   setTimeout(function() { msg.style.display = "none"; }, 3000);
   fetch(BACKEND_URL + "/settings", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ stopLossPct: sl, takeProfitPct: tp })
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ stopLossPct: -slVal, takeProfitPct: tpVal, trailingStopPct: tsVal })
   }).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.success) {
-      addNotif("✅ Backend: SL=" + data.stopLossPct + "% TP=+" + data.takeProfitPct + "%", "win");
-    }
-  }).catch(function(e) { addNotif("❌ Errore: " + e.message, "loss"); });
+    if (data.success) addNotif("✅ Backend aggiornato!", "win");
+  }).catch(function(e) { addNotif("❌ " + e.message, "loss"); });
 }
 
 function saveLeverage() {
@@ -475,11 +451,7 @@ function saveLeverage() {
   var msg = document.getElementById("leverageMsg");
   msg.style.display = "block";
   setTimeout(function() { msg.style.display = "none"; }, 3000);
-  fetch(BACKEND_URL + "/leverage", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ leverage: parseInt(val) })
-  }).catch(function() {});
+  fetch(BACKEND_URL + "/leverage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leverage: parseInt(val) }) }).catch(function() {});
 }
 
 function setOrderSide(side) {
@@ -510,26 +482,24 @@ function handleOrder() {
   var price = document.getElementById("orderPrice").value;
   var leverage = document.getElementById("orderLeverageSlider").value;
   var btn = document.getElementById("executeBtn");
-  var resultEl = document.getElementById("orderResult");
   btn.textContent = "INVIO..."; btn.disabled = true;
   fetch(BACKEND_URL + "/order", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ coin: coin, side: appState.orderSide, size: size, price: price || null, leverage: parseInt(leverage), orderType: appState.orderType })
   }).then(function(r) { return r.json(); }).then(function(data) {
+    var resultEl = document.getElementById("orderResult");
     resultEl.style.display = "block";
     if (data.success) {
       resultEl.style.cssText = "display:block;font-size:10px;padding:12px 14px;border-radius:8px;background:rgba(0,255,149,0.06);border:1px solid #00ff9520;color:#00ff95";
-      resultEl.textContent = "✅ Ordine eseguito!\n" + appState.orderSide.toUpperCase() + " " + size + " " + coin;
+      resultEl.textContent = "✅ Ordine eseguito!";
       addNotif("✅ " + appState.orderSide.toUpperCase() + " " + size + " " + coin, "win");
       setTimeout(function() { loadData(); }, 2000);
     } else {
       resultEl.style.cssText = "display:block;font-size:10px;padding:12px 14px;border-radius:8px;background:rgba(255,77,109,0.06);border:1px solid #ff4d6d20;color:#ff4d6d";
-      resultEl.textContent = "❌ Errore: " + data.error;
+      resultEl.textContent = "❌ " + data.error;
     }
-  }).catch(function(e) {
-    resultEl.style.cssText = "display:block;font-size:10px;padding:12px 14px;border-radius:8px;background:rgba(255,77,109,0.06);border:1px solid #ff4d6d20;color:#ff4d6d";
-    resultEl.textContent = "❌ Errore: " + e.message;
-  }).then(function() { btn.disabled = false; setOrderSide(appState.orderSide); });
+  }).catch(function(e) { addNotif("❌ " + e.message, "loss"); })
+  .then(function() { btn.disabled = false; setOrderSide(appState.orderSide); });
 }
 
 function closePosition(coin) {
@@ -537,9 +507,9 @@ function closePosition(coin) {
   fetch(BACKEND_URL + "/close", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ coin: coin }) })
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      if (data.success) { addNotif("✅ Posizione " + coin + " chiusa!", "win"); setTimeout(function() { loadData(); }, 2000); }
-      else { addNotif("❌ Errore: " + data.error, "loss"); }
-    }).catch(function(e) { addNotif("❌ Errore: " + e.message, "loss"); });
+      if (data.success) { addNotif("✅ " + coin + " chiusa!", "win"); setTimeout(function() { loadData(); }, 2000); }
+      else { addNotif("❌ " + data.error, "loss"); }
+    }).catch(function(e) { addNotif("❌ " + e.message, "loss"); });
 }
 
 function simulateWebhook() {
@@ -552,7 +522,7 @@ function simulateWebhook() {
 
 function renderWebhookLog() {
   var el = document.getElementById("webhookLog");
-  if (appState.webhookLog.length === 0) { el.innerHTML = '<div style="color:#334155;font-size:11px;text-align:center;padding:40px">Nessun segnale ricevuto</div>'; return; }
+  if (!appState.webhookLog.length) { el.innerHTML = '<div style="color:#334155;font-size:11px;text-align:center;padding:40px">Nessun segnale ricevuto</div>'; return; }
   el.innerHTML = appState.webhookLog.map(function(w) {
     return '<div style="background:rgba(6,10,15,0.7);border-radius:8px;padding:12px;border:1px solid #0d1a2a;margin-bottom:8px"><div style="font-size:9px;color:#a78bfa;margin-bottom:6px">' + w.ts + '</div><div style="font-size:10px;color:#64748b">' + w.parsed.side.toUpperCase() + ' ' + w.parsed.coin + ' size:' + w.parsed.size + '</div></div>';
   }).join("");
@@ -563,17 +533,25 @@ function loadBotStatus() {
     var isActive = data.autoTrading && data.autoTrading.indexOf("attivo") >= 0;
     document.getElementById("botStatus").textContent = isActive ? "🟢 ATTIVO" : "🌙 IN PAUSA";
     document.getElementById("botStatus").style.color = isActive ? "#00ff95" : "#64748b";
-    document.getElementById("botHours").textContent = "Orari: " + (data.activeHours || "9:00 - 22:00") + " · Ora IT: " + (data.currentHour || "");
+    document.getElementById("botHours").textContent = "Orari: " + (data.activeHours || "") + " · Ora IT: " + (data.currentHour || "");
     if (data.stopLossPct !== undefined) document.getElementById("botSL").textContent = "-" + Math.abs(data.stopLossPct).toFixed(1) + "% ROE";
     if (data.takeProfitPct !== undefined) document.getElementById("botTP").textContent = "+" + data.takeProfitPct.toFixed(1) + "% ROE";
-    var coins = data.coins || ["BTC", "ETH", "SOL"];
+    if (data.trailingStopPct !== undefined) document.getElementById("botTS").textContent = data.trailingStopPct.toFixed(1) + "% trail";
+    var coins = data.coins || ["BTC","ETH","SOL"];
+    var ready = data.candlesReady || {};
     document.getElementById("botCoins").innerHTML = coins.map(function(coin) {
       var price = appState.mids[coin] ? "$" + parseFloat(appState.mids[coin]).toLocaleString() : "—";
-      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(6,10,15,0.5);border-radius:6px;border:1px solid #0d2035"><span style="font-size:13px;color:#e2e8f0">' + coin + '</span><span style="font-size:11px;color:#00ff95">' + price + '</span><span style="font-size:9px;color:#475569;padding:2px 8px;background:rgba(0,255,149,0.05);border-radius:10px;border:1px solid #00ff9520">MONITORATO</span></div>';
+      var isReady = ready[coin];
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(6,10,15,0.5);border-radius:6px;border:1px solid #0d2035">' +
+        '<span style="font-size:13px;color:#e2e8f0">' + coin + '</span>' +
+        '<span style="font-size:11px;color:#00ff95">' + price + '</span>' +
+        '<span style="font-size:9px;padding:2px 8px;border-radius:10px;' + (isReady ? 'color:#00ff95;background:rgba(0,255,149,0.05);border:1px solid #00ff9520' : 'color:#fb923c;background:rgba(251,146,60,0.05);border:1px solid #fb923c20') + '">' + (isReady ? "PRONTO ✅" : "CARICANDO...") + '</span></div>';
     }).join("");
     document.getElementById("botIndicators").innerHTML = coins.map(function(coin) {
       var price = appState.mids[coin] ? parseFloat(appState.mids[coin]) : 0;
-      return '<div class="stat-card" style="padding:16px"><div style="font-size:12px;color:#e2e8f0;margin-bottom:10px;font-family:\'Bebas Neue\',sans-serif;letter-spacing:2px">' + coin + '</div><div style="font-size:14px;color:#00ff95;margin-bottom:4px">$' + price.toLocaleString() + '</div><div style="font-size:9px;color:#475569;margin-top:8px;line-height:2"><div>RSI: <span style="color:#a78bfa">dal bot</span></div><div>MACD: <span style="color:#a78bfa">dal bot</span></div><div>BB: <span style="color:#a78bfa">dal bot</span></div></div></div>';
+      return '<div class="stat-card" style="padding:16px"><div style="font-size:12px;color:#e2e8f0;margin-bottom:10px;font-family:\'Bebas Neue\',sans-serif;letter-spacing:2px">' + coin + '</div>' +
+        '<div style="font-size:14px;color:#00ff95;margin-bottom:4px">$' + price.toLocaleString() + '</div>' +
+        '<div style="font-size:9px;color:#475569;margin-top:8px;line-height:2"><div>RSI: <span style="color:#a78bfa">dal bot</span></div><div>EMA200: <span style="color:#a78bfa">filtro trend</span></div><div>Long+Short: <span style="color:#00ff95">✅</span></div></div></div>';
     }).join("");
   }).catch(function() {
     document.getElementById("botStatus").textContent = "⚠️ ERRORE";
@@ -584,37 +562,32 @@ function loadBotStatus() {
 function drawChart(canvas, data, positive) {
   if (!canvas || data.length < 2) return;
   var ctx = canvas.getContext("2d");
-  var W = canvas.offsetWidth || 600;
-  var H = 180;
+  var W = canvas.offsetWidth || 600, H = 180;
   canvas.width = W; canvas.height = H;
   var vals = data.map(function(d) { return d.v; });
-  var min = Math.min.apply(null, vals);
-  var max = Math.max.apply(null, vals);
+  var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
   var range = max - min || 1;
-  var pad = { t: 10, r: 10, b: 30, l: 56 };
+  var pad = { t:10, r:10, b:30, l:56 };
   var color = positive ? "#00ff95" : "#ff4d6d";
-  ctx.clearRect(0, 0, W, H);
-  var zeroY = H - pad.b - ((0 - min) / range) * (H - pad.t - pad.b);
-  ctx.strokeStyle = "#1e2a3a"; ctx.setLineDash([4, 4]);
-  ctx.beginPath(); ctx.moveTo(pad.l, zeroY); ctx.lineTo(W - pad.r, zeroY); ctx.stroke();
+  ctx.clearRect(0,0,W,H);
+  var zeroY = H - pad.b - ((0-min)/range)*(H-pad.t-pad.b);
+  ctx.strokeStyle = "#1e2a3a"; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(pad.l,zeroY); ctx.lineTo(W-pad.r,zeroY); ctx.stroke();
   ctx.setLineDash([]);
-  var grad = ctx.createLinearGradient(0, pad.t, 0, H - pad.b);
-  grad.addColorStop(0, color + "26"); grad.addColorStop(1, color + "00");
-  var points = data.map(function(d, i) {
-    return { x: pad.l + (i / (data.length - 1)) * (W - pad.l - pad.r), y: H - pad.b - ((d.v - min) / range) * (H - pad.t - pad.b) };
-  });
-  ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
-  for (var i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
-  ctx.lineTo(points[points.length-1].x, H - pad.b); ctx.lineTo(points[0].x, H - pad.b);
-  ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
-  ctx.beginPath(); ctx.moveTo(points[0].x, points[0].y);
-  for (var j = 1; j < points.length; j++) ctx.lineTo(points[j].x, points[j].y);
-  ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
-  ctx.fillStyle = "#334155"; ctx.font = "9px monospace"; ctx.textAlign = "right";
-  [0, 0.5, 1].forEach(function(t) {
-    var v = min + t * range;
-    var y = H - pad.b - t * (H - pad.t - pad.b);
-    ctx.fillText("$" + v.toFixed(0), pad.l - 4, y + 3);
+  var grad = ctx.createLinearGradient(0,pad.t,0,H-pad.b);
+  grad.addColorStop(0, color+"26"); grad.addColorStop(1, color+"00");
+  var points = data.map(function(d,i) { return { x: pad.l+(i/(data.length-1))*(W-pad.l-pad.r), y: H-pad.b-((d.v-min)/range)*(H-pad.t-pad.b) }; });
+  ctx.beginPath(); ctx.moveTo(points[0].x,points[0].y);
+  for (var i=1;i<points.length;i++) ctx.lineTo(points[i].x,points[i].y);
+  ctx.lineTo(points[points.length-1].x,H-pad.b); ctx.lineTo(points[0].x,H-pad.b);
+  ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(points[0].x,points[0].y);
+  for (var j=1;j<points.length;j++) ctx.lineTo(points[j].x,points[j].y);
+  ctx.strokeStyle=color; ctx.lineWidth=2; ctx.stroke();
+  ctx.fillStyle="#334155"; ctx.font="9px monospace"; ctx.textAlign="right";
+  [0,0.5,1].forEach(function(t) {
+    var v=min+t*range, y=H-pad.b-t*(H-pad.t-pad.b);
+    ctx.fillText("$"+v.toFixed(0),pad.l-4,y+3);
   });
 }
 
@@ -622,7 +595,7 @@ function calcPct(upnl, szi, entryPx, leverageObj) {
   var posValue = Math.abs(szi) * entryPx;
   var leverage = parseFloat((leverageObj && leverageObj.value) || 1);
   var margin = leverage > 0 ? posValue / leverage : posValue;
-  return margin > 0 ? ((upnl / margin) * 100).toFixed(2) : "0.00";
+  return margin > 0 ? ((upnl/margin)*100).toFixed(2) : "0.00";
 }
 
 function renderPositionRow(pos, withClose) {
@@ -632,9 +605,10 @@ function renderPositionRow(pos, withClose) {
   var coin = pos.position.coin;
   var pct = calcPct(upnl, szi, entryPx, pos.position.leverage);
   var color = upnl >= 0 ? "#00ff95" : "#ff4d6d";
-  var closeBtn = withClose ? '<button onclick="closePosition(\'' + coin + '\')" style="padding:4px 10px;border-radius:6px;font-size:9px;letter-spacing:1px;background:rgba(255,77,109,0.1);border:1px solid #ff4d6d40;color:#ff4d6d">✕ CHIUDI</button>' : '';
+  var isLong = szi > 0;
+  var closeBtn = withClose ? '<button onclick="closePosition(\'' + coin + '\')" style="padding:4px 10px;border-radius:6px;font-size:9px;background:rgba(255,77,109,0.1);border:1px solid #ff4d6d40;color:#ff4d6d">✕ CHIUDI</button>' : '';
   return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #0a1420">' +
-    '<span class="badge" style="background:' + (szi>0?"#00ff9515":"#ff4d6d15") + ';color:' + (szi>0?"#00ff95":"#ff4d6d") + ';border:1px solid ' + (szi>0?"#00ff9530":"#ff4d6d30") + '">' + (szi>0?"LONG":"SHORT") + '</span>' +
+    '<span class="badge" style="background:' + (isLong?"#00ff9515":"#ff4d6d15") + ';color:' + (isLong?"#00ff95":"#ff4d6d") + ';border:1px solid ' + (isLong?"#00ff9530":"#ff4d6d30") + '">' + (isLong?"LONG":"SHORT") + '</span>' +
     '<span style="font-size:13px;color:#e2e8f0;flex:1">' + coin + '</span>' +
     '<div style="text-align:right;margin-right:8px"><div style="font-size:11px;color:' + color + '">' + (upnl>=0?"+":"") + '$' + upnl.toFixed(2) + '</div><div style="font-size:9px;color:' + color + ';opacity:0.8">' + (upnl>=0?"+":"") + pct + '% ROE</div></div>' +
     closeBtn + '</div>';
@@ -645,20 +619,17 @@ function renderAll() {
   var fills = appState.fills;
   var mids = appState.mids;
 
-  var perpsValue = parseFloat((p && p.state && p.state.marginSummary && p.state.marginSummary.accountValue) || 0);
-  var spotBalances = (p && p.spotState && p.spotState.balances) || [];
+  var perpsValue = parseFloat((p&&p.state&&p.state.marginSummary&&p.state.marginSummary.accountValue)||0);
+  var spotBalances = (p&&p.spotState&&p.spotState.balances)||[];
   var spotUsdc = null;
-  for (var i = 0; i < spotBalances.length; i++) {
-    if (spotBalances[i].coin === "USDC" || spotBalances[i].coin === "@1") { spotUsdc = spotBalances[i]; break; }
+  for (var i=0;i<spotBalances.length;i++) {
+    if (spotBalances[i].coin==="USDC"||spotBalances[i].coin==="@1") { spotUsdc=spotBalances[i]; break; }
   }
-  var spotValue = parseFloat((spotUsdc && spotUsdc.total) || 0);
-  var totalAccountValue = perpsValue + spotValue;
-  var ms = (p && p.state && p.state.marginSummary) || {};
-  var cms = (p && p.state && p.state.crossMarginSummary) || {};
-  // Saldo disponibile = spotUsdc.total - spotUsdc.hold
-  var spotTotal = parseFloat((spotUsdc && spotUsdc.total) || 0);
-  var spotHold = parseFloat((spotUsdc && spotUsdc.hold) || 0);
+  var spotTotal = parseFloat((spotUsdc&&spotUsdc.total)||0);
+  var spotHold = parseFloat((spotUsdc&&spotUsdc.hold)||0);
+  var totalAccountValue = perpsValue + spotTotal;
   var withdrawable = Math.max(0, spotTotal - spotHold);
+
   document.getElementById("headerValue").textContent = "$" + totalAccountValue.toFixed(2) + " · 💧 $" + withdrawable.toFixed(2);
   document.getElementById("headerValue").style.display = "block";
   document.getElementById("headerStatus").innerHTML = '<span class="pulse" style="color:#00ff95">● LIVE</span>';
@@ -669,62 +640,63 @@ function renderAll() {
     return '<span style="font-size:10px"><span style="color:#475569">' + entry[0] + ' </span><span style="color:#00ff95">$' + parseFloat(entry[1]).toLocaleString() + '</span></span>';
   }).join("");
 
-  var totalPnl = fills.reduce(function(a, f) { return a + parseFloat(f.closedPnl || 0); }, 0);
+  var totalPnl = fills.reduce(function(a,f) { return a+parseFloat(f.closedPnl||0); }, 0);
   var openPositions = [];
-  if (p && p.state && p.state.assetPositions) {
-    openPositions = p.state.assetPositions.filter(function(pos) { return parseFloat((pos.position && pos.position.szi) || 0) !== 0; });
+  if (p&&p.state&&p.state.assetPositions) {
+    openPositions = p.state.assetPositions.filter(function(pos) { return parseFloat((pos.position&&pos.position.szi)||0) !== 0; });
   }
 
   document.getElementById("dashNotConnected").style.display = "none";
   document.getElementById("dashConnected").style.display = "block";
 
-
   document.getElementById("statGrid").innerHTML = [
-    { label: "VALORE USDC", value: "$" + totalAccountValue.toFixed(2), sub: "saldo totale", color: "#00ff95" },
-    { label: "SALDO DISPONIBILE", value: "$" + withdrawable.toFixed(2), sub: "libero per trading", color: "#60a5fa" },
-    { label: "P&L REALIZZATO", value: (totalPnl >= 0 ? "+" : "") + "$" + totalPnl.toFixed(2), sub: fills.length + " fills (7gg)", color: totalPnl >= 0 ? "#00ff95" : "#ff4d6d" }
+    { label: "VALORE USDC", value: "$"+totalAccountValue.toFixed(2), sub: "saldo totale", color: "#00ff95" },
+    { label: "SALDO DISPONIBILE", value: "$"+withdrawable.toFixed(2), sub: "libero per trading", color: "#60a5fa" },
+    { label: "P&L REALIZZATO", value: (totalPnl>=0?"+":"")+"$"+totalPnl.toFixed(2), sub: fills.length+" fills (7gg)", color: totalPnl>=0?"#00ff95":"#ff4d6d" }
   ].map(function(s) {
-    return '<div class="stat-card"><div class="stat-label">' + s.label + '</div><div class="stat-value" style="color:' + s.color + '">' + s.value + '</div><div class="stat-sub">' + s.sub + '</div></div>';
+    return '<div class="stat-card"><div class="stat-label">'+s.label+'</div><div class="stat-value" style="color:'+s.color+'">'+s.value+'</div><div class="stat-sub">'+s.sub+'</div></div>';
   }).join("");
 
-  document.getElementById("equityValue").textContent = (totalPnl >= 0 ? "+" : "") + "$" + totalPnl.toFixed(2);
-  document.getElementById("equityValue").style.color = totalPnl >= 0 ? "#00ff95" : "#ff4d6d";
+  document.getElementById("equityValue").textContent = (totalPnl>=0?"+":"")+"$"+totalPnl.toFixed(2);
+  document.getElementById("equityValue").style.color = totalPnl>=0?"#00ff95":"#ff4d6d";
+
   var canvas = document.getElementById("pnlChart");
   var noChart = document.getElementById("noChart");
   if (appState.pnlHistory.length > 1) {
     canvas.style.display = "block"; noChart.style.display = "none";
-    setTimeout(function() { drawChart(canvas, appState.pnlHistory, totalPnl >= 0); }, 50);
+    setTimeout(function() { drawChart(canvas, appState.pnlHistory, totalPnl>=0); }, 50);
   } else { canvas.style.display = "none"; noChart.style.display = "flex"; }
 
   document.getElementById("posCount").textContent = openPositions.length;
   document.getElementById("positionsList").innerHTML = openPositions.length === 0
     ? '<div style="color:#334155;font-size:11px;text-align:center;padding:24px">Nessuna posizione aperta</div>'
-    : openPositions.slice(0,5).map(function(pos) { return renderPositionRow(pos, true); }).join("");
+    : openPositions.slice(0,5).map(function(pos) { return renderPositionRow(pos,true); }).join("");
   document.getElementById("allPositionsList").innerHTML = openPositions.length === 0
     ? '<div style="color:#334155;font-size:11px;text-align:center;padding:40px">Nessuna posizione aperta</div>'
-    : openPositions.map(function(pos) { return renderPositionRow(pos, true); }).join("");
+    : openPositions.map(function(pos) { return renderPositionRow(pos,true); }).join("");
 
   document.getElementById("fillsCount").textContent = fills.length;
-  document.getElementById("fillsList").innerHTML = fills.length === 0 ? '<div style="text-align:center;padding:60px;color:#334155;font-size:12px">Nessun trade negli ultimi 7 giorni</div>' :
-    fills.map(function(f) {
-      var pnl = parseFloat(f.closedPnl || 0);
+  document.getElementById("fillsList").innerHTML = fills.length === 0
+    ? '<div style="text-align:center;padding:60px;color:#334155;font-size:12px">Nessun trade negli ultimi 7 giorni</div>'
+    : fills.map(function(f) {
+      var pnl = parseFloat(f.closedPnl||0);
       return '<div class="fills-row">' +
-        '<span class="badge" style="background:' + (f.side==="A"?"#ff4d6d15":"#00ff9515") + ';color:' + (f.side==="A"?"#ff4d6d":"#00ff95") + ';border:1px solid ' + (f.side==="A"?"#ff4d6d30":"#00ff9530") + '">' + (f.side==="A"?"SELL":"BUY") + '</span>' +
-        '<span style="color:#94a3b8">' + f.coin + '</span>' +
-        '<span style="color:#475569">' + Math.abs(parseFloat(f.sz)) + '</span>' +
-        '<span style="color:#64748b;font-size:10px">$' + parseFloat(f.px).toLocaleString() + '</span>' +
-        '<span style="color:' + (pnl>=0?"#00ff95":"#ff4d6d") + '">' + (pnl!==0?(pnl>=0?"+":"")+"$"+pnl.toFixed(2):"—") + '</span>' +
-        '<span style="font-size:9px;color:#334155">' + new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}) + '</span></div>';
+        '<span class="badge" style="background:'+(f.side==="A"?"#ff4d6d15":"#00ff9515")+';color:'+(f.side==="A"?"#ff4d6d":"#00ff95")+';border:1px solid '+(f.side==="A"?"#ff4d6d30":"#00ff9530")+'">'+(f.side==="A"?"SELL":"BUY")+'</span>' +
+        '<span style="color:#94a3b8">'+f.coin+'</span>' +
+        '<span style="color:#475569">'+Math.abs(parseFloat(f.sz))+'</span>' +
+        '<span style="color:#64748b;font-size:10px">$'+parseFloat(f.px).toLocaleString()+'</span>' +
+        '<span style="color:'+(pnl>=0?"#00ff95":"#ff4d6d")+'">'+(pnl!==0?(pnl>=0?"+":"")+"$"+pnl.toFixed(2):"—")+'</span>' +
+        '<span style="font-size:9px;color:#334155">'+new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})+'</span></div>';
     }).join("");
 
-  if (appState.meta && appState.meta.universe) {
+  if (appState.meta&&appState.meta.universe) {
     var sel = document.getElementById("orderCoin");
     var cur = sel.value;
-    sel.innerHTML = appState.meta.universe.map(function(u) { return '<option' + (u.name===cur?" selected":"") + '>' + u.name + '</option>'; }).join("");
+    sel.innerHTML = appState.meta.universe.map(function(u) { return '<option'+(u.name===cur?" selected":"")+'>'+u.name+'</option>'; }).join("");
   }
   document.getElementById("orderCoin").onchange = function() {
     var price = appState.mids[this.value];
-    document.getElementById("markPrice").textContent = price ? "Mark price: $" + parseFloat(price).toLocaleString() : "";
+    document.getElementById("markPrice").textContent = price ? "Mark price: $"+parseFloat(price).toLocaleString() : "";
     setOrderSide(appState.orderSide);
   };
 
