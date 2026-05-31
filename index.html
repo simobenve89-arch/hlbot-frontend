@@ -653,7 +653,13 @@ function renderAll() {
   }
   var spotValue = parseFloat((spotUsdc && spotUsdc.total) || 0);
   var totalAccountValue = perpsValue + spotValue;
-  var withdrawable = parseFloat((p && p.state && p.state.crossMarginSummary && p.state.crossMarginSummary.availableBalance) || (p && p.state && p.state.withdrawable) || 0);
+  var ms = (p && p.state && p.state.marginSummary) || {};
+  var cms = (p && p.state && p.state.crossMarginSummary) || {};
+  var withdrawable = parseFloat(cms.availableBalance || ms.availableBalance || p.state.withdrawable || 0);
+  console.log("DEBUG state keys:", p && p.state ? Object.keys(p.state) : "no state");
+  console.log("DEBUG marginSummary:", JSON.stringify(ms));
+  console.log("DEBUG crossMarginSummary:", JSON.stringify(cms));
+  console.log("DEBUG withdrawable raw:", p && p.state && p.state.withdrawable);
 
   document.getElementById("headerValue").textContent = "$" + totalAccountValue.toFixed(2) + " · 💧 $" + withdrawable.toFixed(2);
   document.getElementById("headerValue").style.display = "block";
