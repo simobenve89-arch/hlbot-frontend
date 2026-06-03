@@ -515,14 +515,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; h
       <div class="card" style="margin-bottom:14px" id="statsByCoin"></div>
       <div class="section-title">Ultimi Trade Chiusi</div>
       <div class="card" id="statsRecent"></div>
-    </div>
-  </div>
-
-  <!-- STORICO TAB -->
-  <div id="tab-history" class="tab-content">
-    <div class="main" style="padding-top:0">
-      <div style="font-size:11px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:12px">Storico Trade (7gg) — <span id="fillsCount">0</span> fills</div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;max-height:70vh;overflow-y:auto" id="fillsList">
+      <div class="section-title" style="margin-top:20px">Storico Completo (7gg) — <span id="fillsCount">0</span> fills</div>
+      <div class="card" style="max-height:50vh;overflow-y:auto" id="fillsList">
         <div style="padding:40px;text-align:center;color:var(--text3);font-size:12px">Connettiti per vedere lo storico</div>
       </div>
     </div>
@@ -657,10 +651,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; h
   <button class="nav-item nav-center" id="nav-bot" onclick="switchTab('bot','nav-bot')">
     <div class="nav-icon">🤖</div>
     <span>Bot</span>
-  </button>
-  <button class="nav-item" id="nav-history" onclick="switchTab('history','nav-history')">
-    <div class="nav-icon">📋</div>
-    <span>Storico</span>
   </button>
   <button class="nav-item" id="nav-stats" onclick="switchTab('stats','nav-stats')">
     <div class="nav-icon">📈</div>
