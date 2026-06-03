@@ -756,7 +756,7 @@ function renderStats() {
       '<span style="font-size:13px;color:#e2e8f0;width:50px">' + coin + '</span>' +
       '<span style="font-size:10px;color:#475569">' + coinTrades.length + ' trade</span>' +
       '<span style="font-size:10px;color:' + (coinWr >= 50 ? "#00ff95" : "#ff4d6d") + '">' + coinWr + '% win</span>' +
-      '<span style="font-size:11px;color:' + (coinPnl >= 0 ? "#00ff95" : "#ff4d6d") + ';font-family:'Bebas Neue',sans-serif;letter-spacing:1px">' + (coinPnl>=0?"+":"") + '$' + coinPnl.toFixed(2) + '</span>' +
+      '<span style="font-size:11px;color:' + (coinPnl >= 0 ? "#00ff95" : "#ff4d6d") + ';font-family:\'Bebas Neue\',sans-serif;letter-spacing:1px">' + (coinPnl>=0?"+":"") + '$' + coinPnl.toFixed(2) + '</span>' +
     '</div>';
   }).join("");
 
@@ -770,7 +770,7 @@ function renderStats() {
         '<span class="badge" style="background:'+(f.side==="A"?"#ff4d6d15":"#00ff9515")+';color:'+(f.side==="A"?"#ff4d6d":"#00ff95")+';border:1px solid '+(f.side==="A"?"#ff4d6d30":"#00ff9530")+'">'+(f.side==="A"?"SELL":"BUY")+'</span>' +
         '<span style="color:#e2e8f0;flex:1">' + f.coin + '</span>' +
         '<span style="font-size:9px;color:#475569">' + new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}) + '</span>' +
-        '<span style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:' + (pnl>=0?"#00ff95":"#ff4d6d") + '">' + (pnl>=0?"+":"") + '$' + pnl.toFixed(2) + '</span>' +
+        '<span style="font-family:\'Bebas Neue\',sans-serif;letter-spacing:1px;color:' + (pnl>=0?"#00ff95":"#ff4d6d") + '">' + (pnl>=0?"+":"") + '$' + pnl.toFixed(2) + '</span>' +
       '</div>';
     }).join("");
 }
