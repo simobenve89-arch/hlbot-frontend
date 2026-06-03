@@ -80,6 +80,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
   <button class="nav-btn" onclick="switchTab('bot',this)">🤖 BOT</button>
   <button class="nav-btn" onclick="switchTab('webhook',this)">🔗 WEBHOOK</button>
   <button class="nav-btn" onclick="switchTab('history',this)">📋 STORICO</button>
+  <button class="nav-btn" onclick="switchTab('stats',this)">📈 STATS</button>
   <button class="nav-btn active" onclick="switchTab('settings',this)">⚙️ CONFIG</button>
 </div>
 
@@ -322,6 +323,25 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none;width:14px;hei
     </div>
   </div>
 
+  <!-- STATS -->
+  <div id="tab-stats" class="tab-content">
+    <div id="statsNotConnected" style="text-align:center;padding:80px;color:#334155">
+      <div style="font-size:40px;margin-bottom:16px">📈</div>
+      <div style="font-size:14px">Connettiti per vedere le statistiche</div>
+    </div>
+    <div id="statsConnected" style="display:none">
+      <div class="stat-grid" id="statsGrid" style="margin-bottom:20px"></div>
+      <div class="card" style="padding:20px;margin-bottom:20px">
+        <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:16px">PERFORMANCE PER COIN</div>
+        <div id="statsByCoin"></div>
+      </div>
+      <div class="card" style="padding:20px">
+        <div style="font-size:10px;color:#475569;letter-spacing:2px;margin-bottom:16px">ULTIMI 5 TRADE CHIUSI</div>
+        <div id="statsRecentTrades"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- WEBHOOK -->
   <div id="tab-webhook" class="tab-content">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
@@ -424,6 +444,7 @@ function switchTab(name, btn) {
   document.getElementById("tab-" + name).classList.add("active");
   if (btn) btn.classList.add("active");
   if (name === "bot") { loadBotStatus(); }
+  if (name === "stats") { renderStats(); }
 }
 
 function addNotif(msg, type) {
@@ -689,6 +710,71 @@ function renderPositionRow(pos, withClose) {
     closeBtn + '</div>';
 }
 
+function renderStats() {
+  var fills = appState.fills;
+  if (!fills || fills.length === 0) {
+    document.getElementById("statsNotConnected").style.display = "block";
+    document.getElementById("statsConnected").style.display = "none";
+    return;
+  }
+  document.getElementById("statsNotConnected").style.display = "none";
+  document.getElementById("statsConnected").style.display = "block";
+
+  // Calcola statistiche dai fill
+  var closedTrades = fills.filter(function(f) { return parseFloat(f.closedPnl || 0) !== 0; });
+  var winners = closedTrades.filter(function(f) { return parseFloat(f.closedPnl) > 0; });
+  var losers = closedTrades.filter(function(f) { return parseFloat(f.closedPnl) < 0; });
+  var totalPnl = fills.reduce(function(a,f) { return a + parseFloat(f.closedPnl||0); }, 0);
+  var winRate = closedTrades.length > 0 ? (winners.length / closedTrades.length * 100) : 0;
+  var avgWin = winners.length > 0 ? winners.reduce(function(a,f) { return a + parseFloat(f.closedPnl); }, 0) / winners.length : 0;
+  var avgLoss = losers.length > 0 ? losers.reduce(function(a,f) { return a + parseFloat(f.closedPnl); }, 0) / losers.length : 0;
+  var bestTrade = closedTrades.length > 0 ? Math.max.apply(null, closedTrades.map(function(f) { return parseFloat(f.closedPnl); })) : 0;
+  var worstTrade = closedTrades.length > 0 ? Math.min.apply(null, closedTrades.map(function(f) { return parseFloat(f.closedPnl); })) : 0;
+
+  var winColor = winRate >= 50 ? "#00ff95" : "#ff4d6d";
+
+  document.getElementById("statsGrid").innerHTML = [
+    { label: "WIN RATE", value: winRate.toFixed(1) + "%", sub: winners.length + "W / " + losers.length + "L", color: winColor },
+    { label: "P&L TOTALE", value: (totalPnl>=0?"+":"") + "$" + totalPnl.toFixed(2), sub: "ultimi 7 giorni", color: totalPnl>=0?"#00ff95":"#ff4d6d" },
+    { label: "TRADE CHIUSI", value: closedTrades.length, sub: fills.length + " fills totali", color: "#a78bfa" },
+    { label: "MEDIA VINCITA", value: avgWin > 0 ? "+$" + avgWin.toFixed(2) : "—", sub: "per trade positivo", color: "#00ff95" },
+    { label: "MEDIA PERDITA", value: avgLoss < 0 ? "$" + avgLoss.toFixed(2) : "—", sub: "per trade negativo", color: "#ff4d6d" },
+    { label: "MIGLIOR TRADE", value: bestTrade > 0 ? "+$" + bestTrade.toFixed(2) : "—", sub: "massimo guadagno", color: "#facc15" }
+  ].map(function(s) {
+    return '<div class="stat-card"><div class="stat-label">'+s.label+'</div><div class="stat-value" style="color:'+s.color+'">'+s.value+'</div><div class="stat-sub">'+s.sub+'</div></div>';
+  }).join("");
+
+  // Stats per coin
+  var coins = ["BTC", "ETH", "SOL"];
+  document.getElementById("statsByCoin").innerHTML = coins.map(function(coin) {
+    var coinTrades = closedTrades.filter(function(f) { return f.coin === coin; });
+    var coinWins = coinTrades.filter(function(f) { return parseFloat(f.closedPnl) > 0; }).length;
+    var coinPnl = coinTrades.reduce(function(a,f) { return a + parseFloat(f.closedPnl); }, 0);
+    var coinWr = coinTrades.length > 0 ? (coinWins / coinTrades.length * 100).toFixed(0) : 0;
+    if (coinTrades.length === 0) return '';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid #0a1420">' +
+      '<span style="font-size:13px;color:#e2e8f0;width:50px">' + coin + '</span>' +
+      '<span style="font-size:10px;color:#475569">' + coinTrades.length + ' trade</span>' +
+      '<span style="font-size:10px;color:' + (coinWr >= 50 ? "#00ff95" : "#ff4d6d") + '">' + coinWr + '% win</span>' +
+      '<span style="font-size:11px;color:' + (coinPnl >= 0 ? "#00ff95" : "#ff4d6d") + ';font-family:'Bebas Neue',sans-serif;letter-spacing:1px">' + (coinPnl>=0?"+":"") + '$' + coinPnl.toFixed(2) + '</span>' +
+    '</div>';
+  }).join("");
+
+  // Ultimi 5 trade chiusi
+  var recent = closedTrades.slice(0, 5);
+  document.getElementById("statsRecentTrades").innerHTML = recent.length === 0
+    ? '<div style="color:#334155;font-size:11px;text-align:center;padding:20px">Nessun trade chiuso</div>'
+    : recent.map(function(f) {
+      var pnl = parseFloat(f.closedPnl);
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #0a1420">' +
+        '<span class="badge" style="background:'+(f.side==="A"?"#ff4d6d15":"#00ff9515")+';color:'+(f.side==="A"?"#ff4d6d":"#00ff95")+';border:1px solid '+(f.side==="A"?"#ff4d6d30":"#00ff9530")+'">'+(f.side==="A"?"SELL":"BUY")+'</span>' +
+        '<span style="color:#e2e8f0;flex:1">' + f.coin + '</span>' +
+        '<span style="font-size:9px;color:#475569">' + new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}) + '</span>' +
+        '<span style="font-family:'Bebas Neue',sans-serif;letter-spacing:1px;color:' + (pnl>=0?"#00ff95":"#ff4d6d") + '">' + (pnl>=0?"+":"") + '$' + pnl.toFixed(2) + '</span>' +
+      '</div>';
+    }).join("");
+}
+
 function renderAll() {
   var p = appState.portfolio;
   var fills = appState.fills;
@@ -766,6 +852,7 @@ function renderAll() {
   if (appState.lastUpdate) {
     document.getElementById("lastUpdate").textContent = "Aggiornato: " + appState.lastUpdate.toLocaleTimeString("it-IT") + " · Auto-refresh ogni 15s";
   }
+  renderStats();
 }
 
 if (appState.walletAddress && appState.walletAddress.startsWith("0x") && appState.walletAddress.length === 42) {
