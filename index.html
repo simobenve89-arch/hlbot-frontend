@@ -1002,8 +1002,8 @@ function renderStats() {
 
   // Trade chiusi = solo fill con PnL != 0 (esclude esattamente $0.00)
   var closed = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
-  // Trade totali = solo BUY con PnL reale (aperture chiuse)
-  var totalTrades = closed.filter(function(f){ return f.side !== "A"; }).length;
+  // Trade totali = tutti i fill con PnL reale
+  var totalTrades = closed.length;
   var winners = closed.filter(function(f){return parseFloat(f.closedPnl)>0;});
   var losers = closed.filter(function(f){return parseFloat(f.closedPnl)<0;});
   var totalPnl = fills.reduce(function(a,f){return a+parseFloat(f.closedPnl||0);},0);
@@ -1149,7 +1149,7 @@ function renderAll() {
   if(appState.lastUpdate){
     document.getElementById("lastUpdate").textContent="Aggiornato: "+appState.lastUpdate.toLocaleTimeString("it-IT")+" · Auto-refresh 15s";
   }
-  renderStats();    
+  renderStats();
 }
 
 // Auto-connetti
