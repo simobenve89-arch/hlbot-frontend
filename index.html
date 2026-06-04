@@ -1096,15 +1096,40 @@ function renderStats() {
       '<span style="font-size:14px;font-weight:700;color:'+(cp>0.001?"var(--green)":cp<-0.001?"var(--red)":"var(--text2)")+'">'+(cp>0.001?"+":"")+(Math.abs(cp)<0.001?"$0.00":"$"+cp.toFixed(2))+'</span>'+
     '</div>';
   }).join("");
+  // Raggruppa i fill per abbinare apertura e chiusura
+  // Cerca il fill BUY precedente per ogni fill con PnL
   var recentClosed = closed.filter(function(f){ return Math.abs(parseFloat(f.closedPnl)) >= 0.005; });
   document.getElementById("statsRecent").innerHTML = recentClosed.slice(0,5).map(function(f){
     var pnl = parseFloat(f.closedPnl);
-    return '<div class="fill-row">'+
-      getCoinIcon(f.coin)+
-      '<span style="flex:1;font-size:13px;font-weight:600">'+f.coin+'</span>'+
-      '<span class="fill-badge '+(f.side==="A"?"fill-sell":"fill-buy")+'">'+(f.side==="A"?"SELL":"BUY")+'</span>'+
-      '<span style="font-size:10px;color:var(--text3)">'+new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})+'</span>'+
-      '<span style="font-size:14px;font-weight:700;color:'+(pnl>=0?"var(--green)":"var(--red)")+'">'+(pnl>=0?"+":"")+'$'+pnl.toFixed(2)+'</span>'+
+    var closeTime = new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
+    // Cerca il fill BUY più vicino precedente a questo per la stessa coin
+    var openFill = null;
+    for(var i=0;i<fills.length;i++){
+      var ff = fills[i];
+      if(ff.coin===f.coin && ff.side!=="A" && ff.time < f.time){
+        openFill = ff;
+        break;
+      }
+    }
+    var openTime = openFill ? new Date(openFill.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}) : "—";
+    // Calcola ROE stimato dal PnL e size
+    var entryPx = openFill ? parseFloat(openFill.px) : 0;
+    var sz = openFill ? parseFloat(openFill.sz) : 0;
+    var posVal = entryPx * sz;
+    var roe = posVal > 0 ? ((pnl / (posVal / 10)) * 100) : 0; // assume 10x leva
+    var roeStr = roe !== 0 ? (roe>=0?"+":"")+roe.toFixed(1)+"%" : "";
+    return '<div style="padding:12px 16px;border-bottom:1px solid var(--border)">'+
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'+
+        getCoinIcon(f.coin)+
+        '<span style="font-size:13px;font-weight:600;flex:1">'+f.coin+'</span>'+
+        '<span style="font-size:14px;font-weight:700;color:'+(pnl>=0?"var(--green)":"var(--red)")+'">'+(pnl>=0?"+":"")+'$'+pnl.toFixed(2)+'</span>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;gap:8px;padding-left:50px">'+
+        '<span style="font-size:10px;color:var(--text3)">🟢 '+openTime+'</span>'+
+        '<span style="font-size:10px;color:var(--text3)">→</span>'+
+        '<span style="font-size:10px;color:var(--text3)">🔴 '+closeTime+'</span>'+
+        (roeStr ? '<span style="font-size:10px;font-weight:600;color:'+(roe>=0?"var(--green)":"var(--red)")+'">'+roeStr+'</span>' : '')+
+      '</div>'+
     '</div>';
   }).join("");
 }
