@@ -1105,33 +1105,46 @@ function renderStats() {
     // I fills di Hyperliquid sono dal più recente al più vecchio
     // Per trovare l'apertura: cerco dal fondo (più vecchio) verso il fill corrente
     // il BUY senza PnL più vicino PRIMA della chiusura
-    var openFill = null;
-    var allFills = appState.fills; // usa tutti i fills non filtrati
-    for(var i=allFills.length-1;i>=0;i--){
-      var ff = allFills[i];
-      if(ff.coin===f.coin && ff.side!=="A" && ff.time <= f.time && Math.abs(parseFloat(ff.closedPnl||0)) < 0.005){
-        openFill = ff;
-        break;
-      }
+    // Determina il motivo di chiusura basandosi sul ROE
+    // Legge SL/TP/TS dal localStorage
+    var slPct = Math.abs(parseFloat(localStorage.getItem("hl_sl_pct") || "4"));
+    var tpPct = Math.abs(parseFloat(localStorage.getItem("hl_tp_pct") || "7"));
+    var tsPct = Math.abs(parseFloat(localStorage.getItem("hl_ts_pct") || "2"));
+    // Stima ROE dal PnL — usa sz e px del fill stesso
+    var sz2 = parseFloat(f.sz) || 0;
+    var px2 = parseFloat(f.px) || 0;
+    var posVal2 = sz2 * px2;
+    // Assume leva dal localStorage
+    var lev2 = parseInt(localStorage.getItem("hl_leverage") || "10");
+    var margin2 = posVal2 / lev2;
+    var roe2 = margin2 > 0 ? (pnl / margin2) * 100 : 0;
+    var roeStr = roe2 !== 0 ? (roe2>=0?"+":"")+roe2.toFixed(1)+"%" : "";
+    // Badge motivo chiusura
+    var closeReason = "";
+    var closeColor = "var(--text3)";
+    if (roe2 <= -(slPct * 0.8)) {
+      closeReason = "🔴 STOP LOSS";
+      closeColor = "var(--red)";
+    } else if (roe2 >= (tpPct * 0.8)) {
+      closeReason = "🟢 TAKE PROFIT";
+      closeColor = "var(--green)";
+    } else if (pnl > 0) {
+      closeReason = "🟡 TRAILING";
+      closeColor = "var(--orange)";
+    } else {
+      closeReason = "⚪ CHIUSO";
+      closeColor = "var(--text3)";
     }
-    var openTime = openFill ? new Date(openFill.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}) : "—";
-    // Calcola ROE stimato dal PnL e size
-    var entryPx = openFill ? parseFloat(openFill.px) : 0;
-    var sz = openFill ? parseFloat(openFill.sz) : 0;
-    var posVal = entryPx * sz;
-    var roe = posVal > 0 ? ((pnl / (posVal / 10)) * 100) : 0; // assume 10x leva
-    var roeStr = roe !== 0 ? (roe>=0?"+":"")+roe.toFixed(1)+"%" : "";
     return '<div style="padding:12px 16px;border-bottom:1px solid var(--border)">'+
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'+
         getCoinIcon(f.coin)+
         '<span style="font-size:13px;font-weight:600;flex:1">'+f.coin+'</span>'+
         '<span style="font-size:14px;font-weight:700;color:'+(pnl>=0?"var(--green)":"var(--red)")+'">'+(pnl>=0?"+":"")+'$'+pnl.toFixed(2)+'</span>'+
       '</div>'+
-      '<div style="display:flex;align-items:center;gap:8px;padding-left:50px">'+
-        '<span style="font-size:10px;color:var(--text3)">🟢 '+openTime+'</span>'+
-        '<span style="font-size:10px;color:var(--text3)">→</span>'+
+      '<div style="display:flex;align-items:center;gap:10px;padding-left:50px">'+
         '<span style="font-size:10px;color:var(--text3)">🔴 '+closeTime+'</span>'+
-        (roeStr ? '<span style="font-size:10px;font-weight:600;color:'+(roe>=0?"var(--green)":"var(--red)")+'">'+roeStr+'</span>' : '')+
+        '<span style="font-size:10px;font-weight:600;color:'+closeColor+'">'+closeReason+'</span>'+
+        (roeStr ? '<span style="font-size:10px;color:var(--text2)">'+roeStr+'</span>' : '')+
       '</div>'+
     '</div>';
   }).join("");
@@ -1229,10 +1242,10 @@ function renderAll() {
     document.getElementById("markPrice").textContent=price?"Mark: $"+parseFloat(price).toLocaleString():"";
     setOrderSide(appState.orderSide);
   };
-  if(appState.lastUpdate){
+  if(appState.lastUpdate){ 
     document.getElementById("lastUpdate").textContent="Aggiornato: "+appState.lastUpdate.toLocaleTimeString("it-IT")+" · Auto-refresh 15s";
   }
-  renderStats(); 
+  renderStats();
 }
 
 // Auto-connetti
