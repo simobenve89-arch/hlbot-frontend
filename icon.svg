@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Sfondo scuro con gradiente -->
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#080d1a"/>
+      <stop offset="100%" style="stop-color:#0d1426"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00e5ff"/>
+      <stop offset="100%" style="stop-color:#00d4aa"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feGaussingBlur in="SourceGraphic" stdDeviation="8"/>
+    </filter>
+    <filter id="glow-filter">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  
+  <!-- Sfondo -->
+  <rect width="512" height="512" rx="100" fill="url(#bg)"/>
+  
+  <!-- Bordo glow esterno -->
+  <rect width="512" height="512" rx="100" fill="none" stroke="url(#glow)" stroke-width="3" opacity="0.4"/>
+  
+  <!-- Cerchio decorativo sfondo -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="url(#glow)" stroke-width="1" opacity="0.15"/>
+  <circle cx="256" cy="256" r="140" fill="none" stroke="url(#glow)" stroke-width="1" opacity="0.1"/>
+  
+  <!-- Glow effect dietro le lettere -->
+  <text x="256" y="310" font-family="Arial Black, sans-serif" font-size="220" font-weight="900" 
+        text-anchor="middle" fill="#00e5ff" opacity="0.15" filter="url(#glow-filter)">HL</text>
+  
+  <!-- Lettere HL principali con gradiente -->
+  <text x="256" y="310" font-family="Arial Black, sans-serif" font-size="220" font-weight="900" 
+        text-anchor="middle" fill="url(#glow)">HL</text>
+  
+  <!-- Linea decorativa sotto -->
+  <rect x="100" y="360" width="312" height="3" rx="2" fill="url(#glow)" opacity="0.6"/>
+  
+  <!-- Testo BOT piccolo -->
+  <text x="256" y="420" font-family="Arial, sans-serif" font-size="52" font-weight="bold" 
+        text-anchor="middle" fill="#ffffff" opacity="0.5" letter-spacing="16">BOT</text>
+  
+  <!-- Puntini decorativi angoli -->
+  <circle cx="80" cy="80" r="4" fill="#00e5ff" opacity="0.5"/>
+  <circle cx="432" cy="80" r="4" fill="#00e5ff" opacity="0.5"/>
+  <circle cx="80" cy="432" r="4" fill="#00d4aa" opacity="0.5"/>
+  <circle cx="432" cy="432" r="4" fill="#00d4aa" opacity="0.5"/>
+</svg>
