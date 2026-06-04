@@ -1102,14 +1102,14 @@ function renderStats() {
   document.getElementById("statsRecent").innerHTML = recentClosed.slice(0,5).map(function(f){
     var pnl = parseFloat(f.closedPnl);
     var closeTime = new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
-    // Cerca il fill BUY più vicino e più recente PRIMA della chiusura
-    // I fills sono ordinati dal più recente al più vecchio
+    // I fills di Hyperliquid sono dal più recente al più vecchio
+    // Per trovare l'apertura: cerco dal fondo (più vecchio) verso il fill corrente
+    // il BUY senza PnL più vicino PRIMA della chiusura
     var openFill = null;
-    for(var i=0;i<fills.length;i++){
-      var ff = fills[i];
-      // Cerca il BUY (side!="A") della stessa coin più vicino prima della chiusura
-      // ma che non sia un altro fill con PnL (che sarebbe un'altra chiusura)
-      if(ff.coin===f.coin && ff.side!=="A" && ff.time <= f.time && Math.abs(parseFloat(ff.closedPnl||0)) < 0.001){
+    var allFills = appState.fills; // usa tutti i fills non filtrati
+    for(var i=allFills.length-1;i>=0;i--){
+      var ff = allFills[i];
+      if(ff.coin===f.coin && ff.side!=="A" && ff.time <= f.time && Math.abs(parseFloat(ff.closedPnl||0)) < 0.005){
         openFill = ff;
         break;
       }
@@ -1232,7 +1232,7 @@ function renderAll() {
   if(appState.lastUpdate){
     document.getElementById("lastUpdate").textContent="Aggiornato: "+appState.lastUpdate.toLocaleTimeString("it-IT")+" · Auto-refresh 15s";
   }
-  renderStats();
+  renderStats(); 
 }
 
 // Auto-connetti
