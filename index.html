@@ -1176,10 +1176,11 @@ function renderAll() {
     : openPositions.map(function(pos){return renderPositionRow(pos,true);}).join("");
 
   // Fills
-  document.getElementById("fillsCount").textContent = fills.length;
-  document.getElementById("fillsList").innerHTML = fills.length===0
+  var visibleFills = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) >= 0.005; });
+  document.getElementById("fillsCount").textContent = visibleFills.length;
+  document.getElementById("fillsList").innerHTML = visibleFills.length===0
     ? '<div style="padding:40px;text-align:center;color:var(--text3);font-size:12px">Nessun trade negli ultimi 7 giorni</div>'
-    : fills.map(function(f){
+    : visibleFills.map(function(f){
       var pnl = parseFloat(f.closedPnl||0);
       return '<div class="fill-row">'+
         getCoinIcon(f.coin)+
