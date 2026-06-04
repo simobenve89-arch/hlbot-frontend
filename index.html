@@ -1102,11 +1102,14 @@ function renderStats() {
   document.getElementById("statsRecent").innerHTML = recentClosed.slice(0,5).map(function(f){
     var pnl = parseFloat(f.closedPnl);
     var closeTime = new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
-    // Cerca il fill BUY più vicino precedente a questo per la stessa coin
+    // Cerca il fill BUY più vicino e più recente PRIMA della chiusura
+    // I fills sono ordinati dal più recente al più vecchio
     var openFill = null;
     for(var i=0;i<fills.length;i++){
       var ff = fills[i];
-      if(ff.coin===f.coin && ff.side!=="A" && ff.time < f.time){
+      // Cerca il BUY (side!="A") della stessa coin più vicino prima della chiusura
+      // ma che non sia un altro fill con PnL (che sarebbe un'altra chiusura)
+      if(ff.coin===f.coin && ff.side!=="A" && ff.time <= f.time && Math.abs(parseFloat(ff.closedPnl||0)) < 0.001){
         openFill = ff;
         break;
       }
