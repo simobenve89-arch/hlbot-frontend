@@ -1028,8 +1028,10 @@ function renderStats() {
     '</div>';
   }).join("");
   var coins = ["BTC","ETH","SOL"];
+  // Per il PnL per coin uso TUTTI i fill (anche quelli con PnL piccolo)
+  var allClosed = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
   document.getElementById("statsByCoin").innerHTML = coins.map(function(coin){
-    var ct = closed.filter(function(f){return f.coin===coin;});
+    var ct = allClosed.filter(function(f){return f.coin===coin;});
     var cw = ct.filter(function(f){return parseFloat(f.closedPnl)>0;}).length;
     var cp = ct.reduce(function(a,f){return a+parseFloat(f.closedPnl);},0);
     var wr = ct.length>0?(cw/ct.length*100).toFixed(0):0;
@@ -1042,7 +1044,7 @@ function renderStats() {
       '<span style="font-size:14px;font-weight:700;color:'+(cp>0.001?"var(--green)":cp<-0.001?"var(--red)":"var(--text2)")+'">'+(cp>0.001?"+":"")+(Math.abs(cp)<0.001?"$0.00":"$"+cp.toFixed(2))+'</span>'+
     '</div>';
   }).join("");
-  var recentClosed = closed.filter(function(f){ return Math.abs(parseFloat(f.closedPnl)) > 0.0001; });
+  var recentClosed = closed.filter(function(f){ return Math.abs(parseFloat(f.closedPnl)) >= 0.005; });
   document.getElementById("statsRecent").innerHTML = recentClosed.slice(0,5).map(function(f){
     var pnl = parseFloat(f.closedPnl);
     return '<div class="fill-row">'+
@@ -1149,7 +1151,7 @@ function renderAll() {
   if(appState.lastUpdate){
     document.getElementById("lastUpdate").textContent="Aggiornato: "+appState.lastUpdate.toLocaleTimeString("it-IT")+" · Auto-refresh 15s";
   }
-  renderStats();
+  renderStats();  
 }
 
 // Auto-connetti
