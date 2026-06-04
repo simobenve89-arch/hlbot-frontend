@@ -999,19 +999,11 @@ function renderStats() {
   }
   document.getElementById("statsNotConn").style.display = "none";
   document.getElementById("statsConn").style.display = "block";
-  // Raggruppa i fill per oid (order id) e calcola PnL per ogni ordine chiuso
-  // Un trade = tutti i fill con stesso oid raggruppati
-  var tradeMap = {};
-  fills.forEach(function(f) {
-    var key = f.oid || f.tid || (f.coin + "_" + f.time);
-    if (!tradeMap[key]) tradeMap[key] = { coin: f.coin, pnl: 0, side: f.side, time: f.time, hasPnl: false };
-    var pnl = parseFloat(f.closedPnl || 0);
-    if (pnl !== 0) { tradeMap[key].pnl += pnl; tradeMap[key].hasPnl = true; }
-  });
-  // Conta tutti i fill con PnL non zero come trade chiusi
-  var closed = fills.filter(function(f){return parseFloat(f.closedPnl||0)!==0;});
-  // Per il conteggio totale trade, conta anche i fill BUY (aperture)
-  var totalTrades = fills.filter(function(f){ return f.side !== "A" || parseFloat(f.closedPnl||0) !== 0; }).length;
+
+  // Trade chiusi = solo fill con PnL != 0 (esclude $0.00)
+  var closed = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.001; });
+  // Trade totali = solo BUY con PnL (aperture reali chiuse)
+  var totalTrades = closed.filter(function(f){ return f.side !== "A"; }).length;
   var winners = closed.filter(function(f){return parseFloat(f.closedPnl)>0;});
   var losers = closed.filter(function(f){return parseFloat(f.closedPnl)<0;});
   var totalPnl = fills.reduce(function(a,f){return a+parseFloat(f.closedPnl||0);},0);
@@ -1023,7 +1015,7 @@ function renderStats() {
   document.getElementById("statsGrid").innerHTML = [
     {label:"WIN RATE",val:winRate.toFixed(1)+"%",sub:winners.length+"W / "+losers.length+"L",color:winColor,icon:"🎯"},
     {label:"P&L TOTALE",val:(totalPnl>=0?"+":"")+"$"+totalPnl.toFixed(2),sub:"ultimi 7 giorni",color:totalPnl>=0?"var(--green)":"var(--red)",icon:"💰"},
-    {label:"TRADE CHIUSI",val:totalTrades,sub:closed.length+" con PnL",color:"var(--purple)",icon:"📊"},
+    {label:"TRADE CHIUSI",val:totalTrades,sub:closed.length+" fills con PnL",color:"var(--purple)",icon:"📊"},
     {label:"MEDIA VINCITA",val:avgWin>0?"+$"+avgWin.toFixed(2):"—",sub:"per trade +",color:"var(--green)",icon:"⬆️"},
     {label:"MEDIA PERDITA",val:avgLoss<0?"$"+avgLoss.toFixed(2):"—",sub:"per trade −",color:"var(--red)",icon:"⬇️"},
     {label:"MIGLIOR TRADE",val:best>0?"+$"+best.toFixed(2):"—",sub:"massimo",color:"#facc15",icon:"🏆"}
@@ -1047,10 +1039,11 @@ function renderStats() {
       '<span style="font-size:14px;font-weight:600;flex:1">'+coin+'</span>'+
       '<span style="font-size:11px;color:var(--text3)">'+ct.length+' trade</span>'+
       '<span style="font-size:11px;color:'+(wr>=50?"var(--green)":"var(--red)")+'">'+wr+'% win</span>'+
-      '<span style="font-size:14px;font-weight:700;color:'+(cp>=0?"var(--green)":"var(--red)")+'">'+(cp>=0?"+":"")+'$'+cp.toFixed(2)+'</span>'+
+      '<span style="font-size:14px;font-weight:700;color:'+(cp>0.001?"var(--green)":cp<-0.001?"var(--red)":"var(--text2)")+'">'+(cp>0.001?"+":"")+(Math.abs(cp)<0.001?"$0.00":"$"+cp.toFixed(2))+'</span>'+
     '</div>';
   }).join("");
-  document.getElementById("statsRecent").innerHTML = closed.slice(0,5).map(function(f){
+  var recentClosed = closed.filter(function(f){ return Math.abs(parseFloat(f.closedPnl)) > 0.001; });
+  document.getElementById("statsRecent").innerHTML = recentClosed.slice(0,5).map(function(f){
     var pnl = parseFloat(f.closedPnl);
     return '<div class="fill-row">'+
       getCoinIcon(f.coin)+
@@ -1156,7 +1149,7 @@ function renderAll() {
   if(appState.lastUpdate){
     document.getElementById("lastUpdate").textContent="Aggiornato: "+appState.lastUpdate.toLocaleTimeString("it-IT")+" · Auto-refresh 15s";
   }
-  renderStats(); 
+  renderStats();
 }
 
 // Auto-connetti
