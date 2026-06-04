@@ -517,6 +517,31 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; h
       <div style="font-size:13px">Connettiti per vedere le statistiche</div>
     </div>
     <div id="statsConn" style="display:none">
+      <!-- OGGI -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="section-title" style="margin-bottom:0">OGGI</div>
+        <div id="todayDate" style="font-size:10px;color:var(--text3)"></div>
+      </div>
+      <div class="grid2" style="margin-bottom:20px">
+        <div class="card" style="padding:14px">
+          <div style="font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:6px">P&L OGGI</div>
+          <div id="todayPnl" style="font-size:22px;font-weight:700;color:var(--green)">—</div>
+        </div>
+        <div class="card" style="padding:14px">
+          <div style="font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:6px">TRADE OGGI</div>
+          <div id="todayTrades" style="font-size:22px;font-weight:700;color:var(--purple)">—</div>
+        </div>
+        <div class="card" style="padding:14px">
+          <div style="font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:6px">WIN RATE OGGI</div>
+          <div id="todayWinRate" style="font-size:22px;font-weight:700;color:var(--green)">—</div>
+        </div>
+        <div class="card" style="padding:14px">
+          <div style="font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:6px">MIGLIOR OGGI</div>
+          <div id="todayBest" style="font-size:22px;font-weight:700;color:#facc15">—</div>
+        </div>
+      </div>
+      <!-- 7 GIORNI -->
+      <div class="section-title" style="margin-bottom:10px">ULTIMI 7 GIORNI</div>
       <div class="stats-grid" id="statsGrid"></div>
       <div class="section-title">Performance per Coin</div>
       <div class="card" style="margin-bottom:14px" id="statsByCoin"></div>
@@ -1007,6 +1032,26 @@ function renderStats() {
   document.getElementById("statsNotConn").style.display = "none";
   document.getElementById("statsConn").style.display = "block";
 
+  // ── STATS OGGI ────────────────────────────────────────────────────────────
+  var now = new Date();
+  var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  var todayFills = fills.filter(function(f){ return f.time >= todayStart; });
+  var todayClosed = todayFills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
+  var todayPnl = todayClosed.reduce(function(a,f){return a+parseFloat(f.closedPnl);},0);
+  var todayWinners = todayClosed.filter(function(f){return parseFloat(f.closedPnl)>0;});
+  var todayLosers = todayClosed.filter(function(f){return parseFloat(f.closedPnl)<0;});
+  var todayWr = todayClosed.length>0?(todayWinners.length/todayClosed.length*100).toFixed(0):0;
+  var todayBest = todayClosed.length>0?Math.max.apply(null,todayClosed.map(function(f){return parseFloat(f.closedPnl);})):0;
+  var todayPnlColor = todayPnl>0?"var(--green)":todayPnl<0?"var(--red)":"var(--text2)";
+  var todayWrColor = todayWr>=50?"var(--green)":"var(--red)";
+  document.getElementById("todayDate").textContent = now.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
+  document.getElementById("todayPnl").textContent = (todayPnl>=0?"+":"")+"$"+todayPnl.toFixed(2);
+  document.getElementById("todayPnl").style.color = todayPnlColor;
+  document.getElementById("todayTrades").textContent = todayClosed.length;
+  document.getElementById("todayWinRate").textContent = todayClosed.length>0?todayWr+"%":"—";
+  document.getElementById("todayWinRate").style.color = todayClosed.length>0?todayWrColor:"var(--text3)";
+  document.getElementById("todayBest").textContent = todayBest>0?"+$"+todayBest.toFixed(2):"—";
+
   // Trade chiusi = solo fill con PnL != 0 (esclude esattamente $0.00)
   var closed = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
   // Trade totali = tutti i fill con PnL reale
@@ -1158,7 +1203,7 @@ function renderAll() {
   if(appState.lastUpdate){
     document.getElementById("lastUpdate").textContent="Aggiornato: "+appState.lastUpdate.toLocaleTimeString("it-IT")+" · Auto-refresh 15s";
   }
-  renderStats(); 
+  renderStats();
 }
 
 // Auto-connetti
