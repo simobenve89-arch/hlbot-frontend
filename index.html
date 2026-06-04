@@ -1000,9 +1000,9 @@ function renderStats() {
   document.getElementById("statsNotConn").style.display = "none";
   document.getElementById("statsConn").style.display = "block";
 
-  // Trade chiusi = solo fill con PnL != 0 (esclude $0.00)
-  var closed = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.001; });
-  // Trade totali = solo BUY con PnL (aperture reali chiuse)
+  // Trade chiusi = solo fill con PnL != 0 (esclude esattamente $0.00)
+  var closed = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
+  // Trade totali = solo BUY con PnL reale (aperture chiuse)
   var totalTrades = closed.filter(function(f){ return f.side !== "A"; }).length;
   var winners = closed.filter(function(f){return parseFloat(f.closedPnl)>0;});
   var losers = closed.filter(function(f){return parseFloat(f.closedPnl)<0;});
@@ -1042,7 +1042,7 @@ function renderStats() {
       '<span style="font-size:14px;font-weight:700;color:'+(cp>0.001?"var(--green)":cp<-0.001?"var(--red)":"var(--text2)")+'">'+(cp>0.001?"+":"")+(Math.abs(cp)<0.001?"$0.00":"$"+cp.toFixed(2))+'</span>'+
     '</div>';
   }).join("");
-  var recentClosed = closed.filter(function(f){ return Math.abs(parseFloat(f.closedPnl)) > 0.001; });
+  var recentClosed = closed.filter(function(f){ return Math.abs(parseFloat(f.closedPnl)) > 0.0001; });
   document.getElementById("statsRecent").innerHTML = recentClosed.slice(0,5).map(function(f){
     var pnl = parseFloat(f.closedPnl);
     return '<div class="fill-row">'+
@@ -1149,7 +1149,7 @@ function renderAll() {
   if(appState.lastUpdate){
     document.getElementById("lastUpdate").textContent="Aggiornato: "+appState.lastUpdate.toLocaleTimeString("it-IT")+" · Auto-refresh 15s";
   }
-  renderStats();
+  renderStats();    
 }
 
 // Auto-connetti
