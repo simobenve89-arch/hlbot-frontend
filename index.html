@@ -769,7 +769,7 @@ function loadData(addr) {
     hlPost({type:"meta"})
   ]).then(function(results) {
     appState.portfolio = results[0];
-    appState.fills = Array.isArray(results[1]) ? results[1].slice(0,100) : [];
+    appState.fills = Array.isArray(results[1]) ? results[1].slice(0,500) : [];
     appState.mids = results[2];
     appState.meta = results[3];
     appState.lastUpdate = new Date();
@@ -1120,20 +1120,20 @@ function renderStats() {
     var roe2 = margin2 > 0 ? (pnl / margin2) * 100 : 0;
     var roeStr = roe2 !== 0 ? (roe2>=0?"+":"")+roe2.toFixed(1)+"%" : "";
     // Badge motivo chiusura
-    var closeReason = "";
-    var closeColor = "var(--text3)";
+    var badgeStyle = "";
+    var badgeText = "";
     if (roe2 <= -(slPct * 0.8)) {
-      closeReason = "🔴 STOP LOSS";
-      closeColor = "var(--red)";
+      badgeStyle = "background:rgba(255,77,109,0.15);color:#ff4d6d;border:1px solid rgba(255,77,109,0.3)";
+      badgeText = "STOP LOSS";
     } else if (roe2 >= (tpPct * 0.8)) {
-      closeReason = "🟢 TAKE PROFIT";
-      closeColor = "var(--green)";
+      badgeStyle = "background:rgba(0,212,170,0.15);color:#00d4aa;border:1px solid rgba(0,212,170,0.3)";
+      badgeText = "TAKE PROFIT";
     } else if (pnl > 0) {
-      closeReason = "🟡 TRAILING";
-      closeColor = "var(--orange)";
+      badgeStyle = "background:rgba(251,146,60,0.15);color:#fb923c;border:1px solid rgba(251,146,60,0.3)";
+      badgeText = "TRAILING";
     } else {
-      closeReason = "⚪ CHIUSO";
-      closeColor = "var(--text3)";
+      badgeStyle = "background:rgba(100,116,139,0.15);color:#64748b;border:1px solid rgba(100,116,139,0.3)";
+      badgeText = "CHIUSO";
     }
     return '<div style="padding:12px 16px;border-bottom:1px solid var(--border)">'+
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'+
@@ -1141,9 +1141,9 @@ function renderStats() {
         '<span style="font-size:13px;font-weight:600;flex:1">'+f.coin+'</span>'+
         '<span style="font-size:14px;font-weight:700;color:'+(pnl>=0?"var(--green)":"var(--red)")+'">'+(pnl>=0?"+":"")+'$'+pnl.toFixed(2)+'</span>'+
       '</div>'+
-      '<div style="display:flex;align-items:center;gap:10px;padding-left:50px">'+
+      '<div style="display:flex;align-items:center;gap:8px;padding-left:50px">'+
         '<span style="font-size:10px;color:var(--text3)">🔴 '+closeTime+'</span>'+
-        '<span style="font-size:10px;font-weight:600;color:'+closeColor+'">'+closeReason+'</span>'+
+        '<span style="font-size:9px;padding:3px 8px;border-radius:6px;font-weight:600;'+badgeStyle+'">'+badgeText+'</span>'+
         (roeStr ? '<span style="font-size:10px;color:var(--text2)">'+roeStr+'</span>' : '')+
       '</div>'+
     '</div>';
@@ -1242,7 +1242,7 @@ function renderAll() {
     document.getElementById("markPrice").textContent=price?"Mark: $"+parseFloat(price).toLocaleString():"";
     setOrderSide(appState.orderSide);
   };
-  if(appState.lastUpdate){ 
+  if(appState.lastUpdate){
     document.getElementById("lastUpdate").textContent="Aggiornato: "+appState.lastUpdate.toLocaleTimeString("it-IT")+" · Auto-refresh 15s";
   }
   renderStats();
