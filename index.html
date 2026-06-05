@@ -218,6 +218,7 @@ body::before {
 .coin-icon-btc { background: rgba(247,147,26,0.15); }
 .coin-icon-eth { background: rgba(98,126,234,0.15); }
 .coin-icon-sol { background: rgba(153,69,255,0.15); }
+.coin-icon-xau { background: rgba(255,215,0,0.15); }
 .pos-info { flex: 1; }
 .pos-pair { font-size: 14px; font-weight: 600; }
 .pos-size { font-size: 11px; color: var(--text3); margin-top: 2px; }
@@ -910,8 +911,8 @@ function closePosition(coin) {
 }
 
 function getCoinIcon(coin) {
-  var icons = {BTC:"₿", ETH:"Ξ", SOL:"◎"};
-  var classes = {BTC:"coin-icon-btc", ETH:"coin-icon-eth", SOL:"coin-icon-sol"};
+  var icons = {BTC:"₿", ETH:"Ξ", SOL:"◎", XAU:"Au"};
+  var classes = {BTC:"coin-icon-btc", ETH:"coin-icon-eth", SOL:"coin-icon-sol", XAU:"coin-icon-xau"};
   return '<div class="coin-icon '+(classes[coin]||"")+'">'+( icons[coin]||"🔷")+'</div>';
 }
 
@@ -1079,7 +1080,7 @@ function renderStats() {
       '<div style="font-size:9px;color:var(--text3);margin-top:2px">'+s.sub+'</div>'+
     '</div>';
   }).join("");
-  var coins = ["BTC","ETH","SOL"];
+  var coins = ["BTC","ETH","XAU"];
   // Per il PnL per coin uso TUTTI i fill (anche quelli con PnL piccolo)
   var allClosed = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
   document.getElementById("statsByCoin").innerHTML = coins.map(function(coin){
