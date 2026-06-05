@@ -1179,7 +1179,7 @@ function renderAll() {
   // Prices
   var pb = document.getElementById("pricesBar");
   pb.style.display = "flex";
-  pb.innerHTML = ["BTC","ETH","SOL"].map(function(c){
+  pb.innerHTML = ["BTC","ETH","XAU"].map(function(c){
     var price = mids[c] ? parseFloat(mids[c]).toLocaleString() : "—";
     return '<div class="price-item"><span class="price-coin">'+c+'</span><span class="price-val">$'+price+'</span></div>';
   }).join("");
