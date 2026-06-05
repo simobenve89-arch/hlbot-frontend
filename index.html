@@ -793,8 +793,8 @@ function closePosition(coin) {
 }
 
 function getCoinIcon(coin) {
-  var icons = {BTC:"₿", ETH:"Ξ", SOL:"◎", "@7":"Au"};
-  var classes = {BTC:"coin-icon-btc", ETH:"coin-icon-eth", SOL:"coin-icon-sol", "@7":"coin-icon-xau"};
+  var icons = {BTC:"₿", ETH:"Ξ", SOL:"◎", "AVAX":"▲"};
+  var classes = {BTC:"coin-icon-btc", ETH:"coin-icon-eth", SOL:"coin-icon-sol", "AVAX":"coin-icon-sol"};
   return '<div class="coin-icon '+(classes[coin]||"")+'">'+( icons[coin]||"🔷")+'</div>';
 }
 
@@ -876,7 +876,7 @@ function loadBotStatus() {
     if(data.takeProfitPct!==undefined) document.getElementById("botTP").textContent="+"+data.takeProfitPct.toFixed(1)+"%";
     if(data.trailingStopPct!==undefined) document.getElementById("botTS").textContent=data.trailingStopPct.toFixed(1)+"%";
     if(data.tradeSize!==undefined) document.getElementById("botSize").textContent="$"+data.tradeSize;
-    var coins = data.coins || ["BTC","ETH","@7"];
+    var coins = data.coins || ["BTC","ETH","AVAX"];
     var ready = data.candlesReady || {};
     document.getElementById("botCoins").innerHTML = coins.map(function(coin){
       var price = appState.mids[coin] ? "$"+parseFloat(appState.mids[coin]).toLocaleString() : "—";
@@ -996,7 +996,7 @@ function renderStats() {
     '</div>';
   }).join("");
 
-  var coins = ["BTC","ETH","@7"];
+  var coins = ["BTC","ETH","AVAX"];
   var allClosed = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
   // Deduplicazione: raggruppa fill con stesso coin+minuto (stessa chiusura spezzata in tranche)
   function deduplicateFills(coinFills) {
@@ -1025,25 +1025,63 @@ function renderStats() {
     '</div>';
   }).join("");
 
-  // ── Ultimi 5 trade con badge colorati ─────────────────────────────────
+  // ── Ultimi 5 trade con badge colorati e ROE reale da /history ────────────
   var recentClosed = closed.filter(function(f){ return Math.abs(parseFloat(f.closedPnl)) >= 0.005; });
-  document.getElementById("statsRecent").innerHTML = recentClosed.slice(0,5).map(function(f){
-    var pnl = parseFloat(f.closedPnl);
-    var closeTime = new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
-    var badge = getCloseBadge(pnl);
-    return '<div style="padding:12px 16px;border-bottom:1px solid var(--border)">'+
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'+
-        getCoinIcon(f.coin)+
-        '<span style="font-size:13px;font-weight:600;flex:1">'+f.coin+'</span>'+
-        '<span style="font-size:14px;font-weight:700;color:'+(pnl>=0?"var(--green)":"var(--red)")+'">'+(pnl>=0?"+":"")+'$'+pnl.toFixed(2)+'</span>'+
-      '</div>'+
-      '<div style="display:flex;align-items:center;gap:8px;padding-left:50px">'+
-        '<span style="font-size:10px;color:var(--text3)">🕐 '+closeTime+'</span>'+
-        badge+
-      '</div>'+
-    '</div>';
-  }).join("") || '<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Nessun trade recente</div>';
-  // ──────────────────────────────────────────────────────────────────────
+  // Carica history dal backend per avere il ROE reale
+  fetch(BACKEND_URL + "/history").then(function(r){ return r.json(); }).then(function(histData){
+    var history = (histData && histData.trades) ? histData.trades : [];
+    // Crea mappa coin+minuto → finalRoe
+    var roeMap = {};
+    history.forEach(function(t){
+      if (t.finalRoe !== undefined && t.closedAt) {
+        var minuteKey = Math.floor(t.closedAt / 60000);
+        roeMap[t.coin + "_" + minuteKey] = t.finalRoe;
+      }
+    });
+    document.getElementById("statsRecent").innerHTML = recentClosed.slice(0,5).map(function(f){
+      var pnl = parseFloat(f.closedPnl);
+      var closeTime = new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
+      var badge = getCloseBadge(pnl);
+      // Cerca ROE reale nella history
+      var minuteKey = Math.floor(f.time / 60000);
+      var roeKey = f.coin + "_" + minuteKey;
+      var roeReal = roeMap[roeKey];
+      var roeStr = roeReal !== undefined
+        ? '<span style="font-size:10px;color:'+(roeReal>=0?"var(--green)":"var(--red)")+'">ROE '+(roeReal>=0?"+":"")+roeReal.toFixed(1)+'%</span>'
+        : '';
+      return '<div style="padding:12px 16px;border-bottom:1px solid var(--border)">'+
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'+
+          getCoinIcon(f.coin)+
+          '<span style="font-size:13px;font-weight:600;flex:1">'+f.coin+'</span>'+
+          '<span style="font-size:14px;font-weight:700;color:'+(pnl>=0?"var(--green)":"var(--red)")+'">'+(pnl>=0?"+":"")+'$'+pnl.toFixed(2)+'</span>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:8px;padding-left:50px">'+
+          '<span style="font-size:10px;color:var(--text3)">🕐 '+closeTime+'</span>'+
+          badge+
+          roeStr+
+        '</div>'+
+      '</div>';
+    }).join("") || '<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Nessun trade recente</div>';
+  }).catch(function(){
+    // Fallback senza ROE se /history non risponde
+    document.getElementById("statsRecent").innerHTML = recentClosed.slice(0,5).map(function(f){
+      var pnl = parseFloat(f.closedPnl);
+      var closeTime = new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
+      var badge = getCloseBadge(pnl);
+      return '<div style="padding:12px 16px;border-bottom:1px solid var(--border)">'+
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'+
+          getCoinIcon(f.coin)+
+          '<span style="font-size:13px;font-weight:600;flex:1">'+f.coin+'</span>'+
+          '<span style="font-size:14px;font-weight:700;color:'+(pnl>=0?"var(--green)":"var(--red)")+'">'+(pnl>=0?"+":"")+'$'+pnl.toFixed(2)+'</span>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:8px;padding-left:50px">'+
+          '<span style="font-size:10px;color:var(--text3)">🕐 '+closeTime+'</span>'+
+          badge+
+        '</div>'+
+      '</div>';
+    }).join("") || '<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Nessun trade recente</div>';
+  });
+  // ──────────────────────────────────────────────────────────────────────────
 }
 
 function renderAll() {
@@ -1072,7 +1110,7 @@ function renderAll() {
 
   var pb = document.getElementById("pricesBar");
   pb.style.display = "flex";
-  pb.innerHTML = ["BTC","ETH","@7"].map(function(c){
+  pb.innerHTML = ["BTC","ETH","AVAX"].map(function(c){
     var price = mids[c] ? parseFloat(mids[c]).toLocaleString() : "—";
     return '<div class="price-item"><span class="price-coin">'+c+'</span><span class="price-val">$'+price+'</span></div>';
   }).join("");
@@ -1134,7 +1172,7 @@ function renderAll() {
   if(appState.lastUpdate){
     document.getElementById("lastUpdate").textContent="Aggiornato: "+appState.lastUpdate.toLocaleTimeString("it-IT")+" · Auto-refresh 15s";
   }
-  renderStats(); 
+  renderStats();
 }
 
 if(appState.walletAddress&&appState.walletAddress.startsWith("0x")&&appState.walletAddress.length===42){
