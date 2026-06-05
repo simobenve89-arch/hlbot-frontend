@@ -793,8 +793,8 @@ function closePosition(coin) {
 }
 
 function getCoinIcon(coin) {
-  var icons = {BTC:"₿", ETH:"Ξ", SOL:"◎", GOLD:"Au"};
-  var classes = {BTC:"coin-icon-btc", ETH:"coin-icon-eth", SOL:"coin-icon-sol", GOLD:"coin-icon-xau"};
+  var icons = {BTC:"₿", ETH:"Ξ", SOL:"◎", "@7":"Au"};
+  var classes = {BTC:"coin-icon-btc", ETH:"coin-icon-eth", SOL:"coin-icon-sol", "@7":"coin-icon-xau"};
   return '<div class="coin-icon '+(classes[coin]||"")+'">'+( icons[coin]||"🔷")+'</div>';
 }
 
@@ -876,7 +876,7 @@ function loadBotStatus() {
     if(data.takeProfitPct!==undefined) document.getElementById("botTP").textContent="+"+data.takeProfitPct.toFixed(1)+"%";
     if(data.trailingStopPct!==undefined) document.getElementById("botTS").textContent=data.trailingStopPct.toFixed(1)+"%";
     if(data.tradeSize!==undefined) document.getElementById("botSize").textContent="$"+data.tradeSize;
-    var coins = data.coins || ["BTC","ETH","GOLD"];
+    var coins = data.coins || ["BTC","ETH","@7"];
     var ready = data.candlesReady || {};
     document.getElementById("botCoins").innerHTML = coins.map(function(coin){
       var price = appState.mids[coin] ? "$"+parseFloat(appState.mids[coin]).toLocaleString() : "—";
@@ -996,7 +996,7 @@ function renderStats() {
     '</div>';
   }).join("");
 
-  var coins = ["BTC","ETH","GOLD"];
+  var coins = ["BTC","ETH","@7"];
   var allClosed = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
   // Deduplicazione: raggruppa fill con stesso coin+minuto (stessa chiusura spezzata in tranche)
   function deduplicateFills(coinFills) {
@@ -1072,7 +1072,7 @@ function renderAll() {
 
   var pb = document.getElementById("pricesBar");
   pb.style.display = "flex";
-  pb.innerHTML = ["BTC","ETH","GOLD"].map(function(c){
+  pb.innerHTML = ["BTC","ETH","@7"].map(function(c){
     var price = mids[c] ? parseFloat(mids[c]).toLocaleString() : "—";
     return '<div class="price-item"><span class="price-coin">'+c+'</span><span class="price-val">$'+price+'</span></div>';
   }).join("");
@@ -1134,7 +1134,7 @@ function renderAll() {
   if(appState.lastUpdate){
     document.getElementById("lastUpdate").textContent="Aggiornato: "+appState.lastUpdate.toLocaleTimeString("it-IT")+" · Auto-refresh 15s";
   }
-  renderStats();
+  renderStats(); 
 }
 
 if(appState.walletAddress&&appState.walletAddress.startsWith("0x")&&appState.walletAddress.length===42){
