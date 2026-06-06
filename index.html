@@ -1030,22 +1030,32 @@ function renderStats() {
   // Carica history dal backend per avere il ROE reale
   fetch(BACKEND_URL + "/history").then(function(r){ return r.json(); }).then(function(histData){
     var history = (histData && histData.trades) ? histData.trades : [];
-    // Crea mappa coin+minuto → finalRoe
-    var roeMap = {};
+    // Crea mappa coin+minuto → { finalRoe, closeReason }
+    var tradeMap = {};
     history.forEach(function(t){
-      if (t.finalRoe !== undefined && t.closedAt) {
+      if (t.closedAt) {
         var minuteKey = Math.floor(t.closedAt / 60000);
-        roeMap[t.coin + "_" + minuteKey] = t.finalRoe;
+        tradeMap[t.coin + "_" + minuteKey] = { finalRoe: t.finalRoe, closeReason: t.closeReason };
       }
     });
     document.getElementById("statsRecent").innerHTML = recentClosed.slice(0,5).map(function(f){
       var pnl = parseFloat(f.closedPnl);
       var closeTime = new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
-      var badge = getCloseBadge(pnl);
-      // Cerca ROE reale nella history
+      // Cerca nella history per badge e ROE precisi
       var minuteKey = Math.floor(f.time / 60000);
-      var roeKey = f.coin + "_" + minuteKey;
-      var roeReal = roeMap[roeKey];
+      var tradeData = tradeMap[f.coin + "_" + minuteKey];
+      // Badge da closeReason reale, fallback a stima PnL
+      var badge;
+      if (tradeData && tradeData.closeReason) {
+        var r = tradeData.closeReason;
+        if (r === "STOP_LOSS")   badge = '<span class="close-badge close-badge-sl">🔴 STOP LOSS</span>';
+        else if (r === "TAKE_PROFIT") badge = '<span class="close-badge close-badge-tp">🟢 TAKE PROFIT</span>';
+        else if (r === "TRAILING")    badge = '<span class="close-badge close-badge-tr">🟠 TRAILING</span>';
+        else badge = '<span class="close-badge close-badge-cl">⚪ CHIUSO</span>';
+      } else {
+        badge = getCloseBadge(pnl);
+      }
+      var roeReal = tradeData ? tradeData.finalRoe : undefined;
       var roeStr = roeReal !== undefined
         ? '<span style="font-size:10px;color:'+(roeReal>=0?"var(--green)":"var(--red)")+'">ROE '+(roeReal>=0?"+":"")+roeReal.toFixed(1)+'%</span>'
         : '';
