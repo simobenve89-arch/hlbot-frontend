@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>HL BOT v2.0</title>
-<!-- PWA Icons -->
 <link rel="apple-touch-icon" sizes="512x512" href="icon.png">
 <link rel="icon" type="image/png" href="icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -71,10 +70,30 @@ body::before {
 .logo-hl { font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 4px; background: linear-gradient(135deg, #00e5ff, #00d4aa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 .logo-bot { font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 4px; color: var(--text); }
 .logo-v { font-size: 9px; color: var(--accent2); letter-spacing: 2px; }
-.header-right { display: flex; align-items: center; gap: 12px; }
+.header-right { display: flex; align-items: center; gap: 10px; }
 .header-val { font-size: 13px; font-weight: 600; color: var(--green); display: none; }
 .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
 @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)} }
+
+/* ── Bot toggle button ──────────────────────────────────────────────────────── */
+.bot-toggle-btn {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: 'Inter', sans-serif;
+}
+.bot-toggle-on  { background: rgba(0,212,170,0.15); color: var(--green); border: 1px solid rgba(0,212,170,0.3); }
+.bot-toggle-off { background: rgba(255,77,109,0.15); color: var(--red);   border: 1px solid rgba(255,77,109,0.3); }
+.bot-toggle-btn:active { opacity: 0.7; }
+/* ──────────────────────────────────────────────────────────────────────────── */
 
 .prices-bar { 
   background: rgba(13,20,40,0.8);
@@ -213,8 +232,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; h
 .fill-row { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
 .fill-row:last-child { border-bottom: none; }
 .fill-badge { font-size: 8px; padding: 3px 8px; border-radius: 6px; font-weight: 600; flex-shrink: 0; }
-.fill-buy { background: rgba(0,212,170,0.1); color: var(--green); border: 1px solid rgba(0,212,170,0.2); }
-.fill-sell { background: rgba(255,77,109,0.1); color: var(--red); border: 1px solid rgba(255,77,109,0.2); }
+.fill-long  { background: rgba(0,212,170,0.1);  color: var(--green); border: 1px solid rgba(0,212,170,0.2); }
+.fill-short { background: rgba(255,77,109,0.1); color: var(--red);   border: 1px solid rgba(255,77,109,0.2); }
 
 .notif-container { position: fixed; top: 80px; right: 16px; z-index: 200; display: flex; flex-direction: column; gap: 8px; max-width: 300px; }
 .notif-item { border-radius: 12px; padding: 10px 16px; font-size: 12px; backdrop-filter: blur(20px); animation: slideIn 0.3s cubic-bezier(.16,1,.3,1); }
@@ -223,6 +242,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; h
 .bot-status-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; }
 .bot-active { background: rgba(0,212,170,0.1); color: var(--green); border: 1px solid rgba(0,212,170,0.2); }
 .bot-pause { background: rgba(100,116,139,0.1); color: #64748b; border: 1px solid rgba(100,116,139,0.2); }
+.bot-disabled { background: rgba(255,77,109,0.1); color: var(--red); border: 1px solid rgba(255,77,109,0.2); }
 
 .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
 .stats-mini { padding: 14px; border-radius: 14px; }
@@ -263,6 +283,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; h
   </div>
   <div class="header-right">
     <div id="headerVal" class="header-val"></div>
+    <button id="botToggleBtn" class="bot-toggle-btn bot-toggle-on" onclick="toggleBot()">🟢 ON</button>
     <div id="headerDot" class="live-dot" style="display:none"></div>
   </div>
 </div>
@@ -743,6 +764,29 @@ function saveLeverage() {
   addNotif("✅ Leva "+val+"x salvata!","win");
 }
 
+// ── Bot ON/OFF toggle ────────────────────────────────────────────────────────
+function toggleBot() {
+  var btn = document.getElementById("botToggleBtn");
+  var isOn = btn.classList.contains("bot-toggle-on");
+  var newState = !isOn;
+  btn.disabled = true;
+  fetch(BACKEND_URL + "/bot/toggle", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ enabled: newState })
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.success) {
+      btn.className = "bot-toggle-btn " + (newState ? "bot-toggle-on" : "bot-toggle-off");
+      btn.textContent = newState ? "🟢 ON" : "🔴 OFF";
+      btn.style.display = "flex";
+      addNotif(newState ? "🟢 Bot attivato!" : "🔴 Bot in pausa", newState ? "win" : "loss");
+      loadBotStatus();
+    }
+  }).catch(function(e){ addNotif("❌ " + e.message, "loss"); })
+  .then(function(){ btn.disabled = false; });
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
 function setOrderSide(side) {
   appState.orderSide = side;
   var isBuy = side === "buy";
@@ -798,7 +842,6 @@ function getCoinIcon(coin) {
   return '<div class="coin-icon '+(classes[coin]||"")+'">'+( icons[coin]||"🔷")+'</div>';
 }
 
-// ── FIX: calcolo ROE corretto (uguale al server) ───────────────────────────
 function calcROEFromPosition(pos) {
   var szi = parseFloat(pos.szi);
   var upnl = parseFloat(pos.unrealizedPnl);
@@ -809,7 +852,6 @@ function calcROEFromPosition(pos) {
   if (margin <= 0) return 0;
   return (upnl / margin) * 100;
 }
-// ──────────────────────────────────────────────────────────────────────────
 
 function renderPositionRow(pos, withClose) {
   var p = pos.position;
@@ -817,10 +859,8 @@ function renderPositionRow(pos, withClose) {
   var upnl = parseFloat(p.unrealizedPnl);
   var entryPx = parseFloat(p.entryPx || 0);
   var coin = p.coin;
-  // ── ROE calcolato correttamente ──────────────────────────────────────────
   var roe = calcROEFromPosition(p);
   var roePct = roe.toFixed(2);
-  // ─────────────────────────────────────────────────────────────────────────
   var isLong = szi > 0;
   var color = upnl >= 0 ? "var(--green)" : "var(--red)";
   var closeBtn = withClose ? '<button onclick="closePosition(\''+coin+'\')" style="padding:6px 12px;border-radius:8px;font-size:10px;background:rgba(255,77,109,0.1);border:1px solid rgba(255,77,109,0.2);color:var(--red);cursor:pointer;font-family:Inter">✕</button>' : '';
@@ -842,15 +882,10 @@ function renderPositionRow(pos, withClose) {
   '</div>';
 }
 
-// ── Badge chiusura trade ───────────────────────────────────────────────────
-// Determina il badge corretto basandosi sul PnL relativo alla size del trade
-// usando le soglie SL/TP salvate
 function getCloseBadge(pnl) {
   var tradeSize = parseFloat(localStorage.getItem("hl_size") || "5");
   var slPct = Math.abs(parseFloat(localStorage.getItem("hl_sl_pct") || "4"));
   var tpPct = Math.abs(parseFloat(localStorage.getItem("hl_tp_pct") || "12"));
-  // Soglie: SL → perdita oltre slPct% del margin (tradeSize/leva),
-  // qui usiamo il PnL grezzo con un margine del 70% per coprire i casi limite
   var slThreshold = -(tradeSize * slPct / 100);
   var tpThreshold =  (tradeSize * tpPct / 100);
   if (pnl <= slThreshold * 0.7) {
@@ -863,19 +898,34 @@ function getCloseBadge(pnl) {
     return '<span class="close-badge close-badge-cl">⚪ CHIUSO</span>';
   }
 }
-// ──────────────────────────────────────────────────────────────────────────
 
 function loadBotStatus() {
   fetch(BACKEND_URL+"/").then(function(r){return r.json();}).then(function(data){
-    var isActive = data.autoTrading && data.autoTrading.indexOf("attivo") >= 0;
+    var isEnabled = data.botEnabled !== false;
+    var isActive = isEnabled && data.autoTrading && data.autoTrading.indexOf("attivo") >= 0;
     var pill = document.getElementById("botStatusPill");
-    pill.className = "bot-status-pill " + (isActive ? "bot-active" : "bot-pause");
-    pill.innerHTML = (isActive ? "<span>🟢</span><span>ATTIVO</span>" : "<span>🌙</span><span>IN PAUSA</span>");
+    if (!isEnabled) {
+      pill.className = "bot-status-pill bot-disabled";
+      pill.innerHTML = "<span>🔴</span><span>DISABILITATO</span>";
+    } else if (isActive) {
+      pill.className = "bot-status-pill bot-active";
+      pill.innerHTML = "<span>🟢</span><span>ATTIVO</span>";
+    } else {
+      pill.className = "bot-status-pill bot-pause";
+      pill.innerHTML = "<span>🌙</span><span>IN PAUSA</span>";
+    }
     document.getElementById("botHours").textContent = "Orari: "+(data.activeHours||"")+" · Ora IT: "+(data.currentHour||"");
     if(data.stopLossPct!==undefined) document.getElementById("botSL").textContent="-"+Math.abs(data.stopLossPct).toFixed(1)+"%";
     if(data.takeProfitPct!==undefined) document.getElementById("botTP").textContent="+"+data.takeProfitPct.toFixed(1)+"%";
     if(data.trailingStopPct!==undefined) document.getElementById("botTS").textContent=data.trailingStopPct.toFixed(1)+"%";
     if(data.tradeSize!==undefined) document.getElementById("botSize").textContent="$"+data.tradeSize;
+
+    // Aggiorna pulsante ON/OFF nell'header
+    var btn = document.getElementById("botToggleBtn");
+    btn.style.display = "flex";
+    btn.className = "bot-toggle-btn " + (isEnabled ? "bot-toggle-on" : "bot-toggle-off");
+    btn.textContent = isEnabled ? "🟢 ON" : "🔴 OFF";
+
     var coins = data.coins || ["BTC","ETH","AVAX"];
     var ready = data.candlesReady || {};
     document.getElementById("botCoins").innerHTML = coins.map(function(coin){
@@ -998,11 +1048,10 @@ function renderStats() {
 
   var coins = ["BTC","ETH","AVAX"];
   var allClosed = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
-  // Deduplicazione: raggruppa fill con stesso coin+minuto (stessa chiusura spezzata in tranche)
   function deduplicateFills(coinFills) {
     var groups = {};
     coinFills.forEach(function(f) {
-      var minuteKey = Math.floor(f.time / 60000); // arrotonda al minuto
+      var minuteKey = Math.floor(f.time / 60000);
       var key = f.coin + "_" + minuteKey;
       if (!groups[key]) groups[key] = { coin: f.coin, time: f.time, closedPnl: 0 };
       groups[key].closedPnl += parseFloat(f.closedPnl || 0);
@@ -1025,12 +1074,9 @@ function renderStats() {
     '</div>';
   }).join("");
 
-  // ── Ultimi 5 trade con badge colorati e ROE reale da /history ────────────
   var recentClosed = closed.filter(function(f){ return Math.abs(parseFloat(f.closedPnl)) >= 0.005; });
-  // Carica history dal backend per avere il ROE reale
   fetch(BACKEND_URL + "/history").then(function(r){ return r.json(); }).then(function(histData){
     var history = (histData && histData.trades) ? histData.trades : [];
-    // Crea mappa coin+minuto → { finalRoe, closeReason }
     var tradeMap = {};
     history.forEach(function(t){
       if (t.closedAt) {
@@ -1041,17 +1087,15 @@ function renderStats() {
     document.getElementById("statsRecent").innerHTML = recentClosed.slice(0,5).map(function(f){
       var pnl = parseFloat(f.closedPnl);
       var closeTime = new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
-      // Cerca nella history per badge e ROE precisi
       var minuteKey = Math.floor(f.time / 60000);
       var tradeData = tradeMap[f.coin + "_" + minuteKey];
-      // Badge da closeReason reale, fallback a stima PnL
       var badge;
       if (tradeData && tradeData.closeReason) {
         var r = tradeData.closeReason;
-        if (r === "STOP_LOSS")   badge = '<span class="close-badge close-badge-sl">🔴 STOP LOSS</span>';
+        if (r === "STOP_LOSS")        badge = '<span class="close-badge close-badge-sl">🔴 STOP LOSS</span>';
         else if (r === "TAKE_PROFIT") badge = '<span class="close-badge close-badge-tp">🟢 TAKE PROFIT</span>';
         else if (r === "TRAILING")    badge = '<span class="close-badge close-badge-tr">🟠 TRAILING</span>';
-        else badge = '<span class="close-badge close-badge-cl">⚪ CHIUSO</span>';
+        else                          badge = '<span class="close-badge close-badge-cl">⚪ CHIUSO</span>';
       } else {
         badge = getCloseBadge(pnl);
       }
@@ -1073,7 +1117,6 @@ function renderStats() {
       '</div>';
     }).join("") || '<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Nessun trade recente</div>';
   }).catch(function(){
-    // Fallback senza ROE se /history non risponde
     document.getElementById("statsRecent").innerHTML = recentClosed.slice(0,5).map(function(f){
       var pnl = parseFloat(f.closedPnl);
       var closeTime = new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"});
@@ -1091,7 +1134,6 @@ function renderStats() {
       '</div>';
     }).join("") || '<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px">Nessun trade recente</div>';
   });
-  // ──────────────────────────────────────────────────────────────────────────
 }
 
 function renderAll() {
@@ -1155,20 +1197,27 @@ function renderAll() {
     ? '<div style="padding:40px;text-align:center;color:var(--text3);font-size:12px">Nessuna posizione aperta</div>'
     : openPositions.map(function(pos){return renderPositionRow(pos,true);}).join("");
 
+  // ── Storico con SHORT/LONG invece di BUY/SELL ────────────────────────────
   var visibleFills = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) >= 0.005; });
   document.getElementById("fillsCount").textContent = visibleFills.length;
   document.getElementById("fillsList").innerHTML = visibleFills.length===0
     ? '<div style="padding:40px;text-align:center;color:var(--text3);font-size:12px">Nessun trade negli ultimi 7 giorni</div>'
     : visibleFills.map(function(f){
       var pnl = parseFloat(f.closedPnl||0);
+      // side==="A" significa che ha VENDUTO (fill lato Ask) → era una posizione LONG chiusa con vendita
+      // side==="B" significa che ha COMPRATO (fill lato Bid) → era una posizione SHORT chiusa con acquisto
+      var isShort = f.side === "B"; // chiusura SHORT = ha comprato per ricoprire
+      var dirLabel = isShort ? "SHORT" : "LONG";
+      var dirClass = isShort ? "fill-short" : "fill-long";
       return '<div class="fill-row">'+
         getCoinIcon(f.coin)+
         '<span style="flex:1;font-size:13px;font-weight:600">'+f.coin+'</span>'+
-        '<span class="fill-badge '+(f.side==="A"?"fill-sell":"fill-buy")+'">'+(f.side==="A"?"SELL":"BUY")+'</span>'+
+        '<span class="fill-badge '+dirClass+'">'+dirLabel+'</span>'+
         '<span style="font-size:11px;color:var(--text3)">'+new Date(f.time).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})+'</span>'+
         '<span style="font-size:13px;font-weight:700;color:'+(pnl>=0?"var(--green)":"var(--red)")+'">'+(pnl!==0?(pnl>=0?"+":"")+"$"+pnl.toFixed(2):"—")+'</span>'+
       '</div>';
     }).join("");
+  // ──────────────────────────────────────────────────────────────────────────
 
   if(appState.meta&&appState.meta.universe){
     var sel=document.getElementById("orderCoin"),cur=sel.value;
