@@ -1001,15 +1001,28 @@ function renderStats() {
   document.getElementById("statsNotConn").style.display = "none";
   document.getElementById("statsConn").style.display = "block";
 
+  // Deduplicazione globale: raggruppa fill con stesso coin+minuto in un unico trade
+  function deduplicateFills(coinFills) {
+    var groups = {};
+    coinFills.forEach(function(f) {
+      var minuteKey = Math.floor(f.time / 60000);
+      var key = f.coin + "_" + minuteKey;
+      if (!groups[key]) groups[key] = { coin: f.coin, time: f.time, closedPnl: 0 };
+      groups[key].closedPnl += parseFloat(f.closedPnl || 0);
+    });
+    return Object.values(groups);
+  }
+
   var now = new Date();
   var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   var todayFills = fills.filter(function(f){ return f.time >= todayStart; });
-  var todayClosed = todayFills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
-  var todayPnl = todayClosed.reduce(function(a,f){return a+parseFloat(f.closedPnl);},0);
-  var todayWinners = todayClosed.filter(function(f){return parseFloat(f.closedPnl)>0;});
-  var todayLosers = todayClosed.filter(function(f){return parseFloat(f.closedPnl)<0;});
+  var todayClosedRaw = todayFills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
+  var todayClosed = deduplicateFills(todayClosedRaw);
+  var todayPnl = todayClosed.reduce(function(a,f){return a+f.closedPnl;},0);
+  var todayWinners = todayClosed.filter(function(f){return f.closedPnl>0;});
+  var todayLosers = todayClosed.filter(function(f){return f.closedPnl<0;});
   var todayWr = todayClosed.length>0?(todayWinners.length/todayClosed.length*100).toFixed(0):0;
-  var todayBest = todayClosed.length>0?Math.max.apply(null,todayClosed.map(function(f){return parseFloat(f.closedPnl);})):0;
+  var todayBest = todayClosed.length>0?Math.max.apply(null,todayClosed.map(function(f){return f.closedPnl;})):0;
   var todayPnlColor = todayPnl>0?"var(--green)":todayPnl<0?"var(--red)":"var(--text2)";
   var todayWrColor = todayWr>=50?"var(--green)":"var(--red)";
   document.getElementById("todayDate").textContent = now.toLocaleDateString("it-IT",{weekday:"long",day:"numeric",month:"long"});
@@ -1020,15 +1033,16 @@ function renderStats() {
   document.getElementById("todayWinRate").style.color = todayClosed.length>0?todayWrColor:"var(--text3)";
   document.getElementById("todayBest").textContent = todayBest>0?"+$"+todayBest.toFixed(2):"—";
 
-  var closed = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
+  var closedRaw = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
+  var closed = deduplicateFills(closedRaw); // deduplicati per coin+minuto
   var totalTrades = closed.length;
-  var winners = closed.filter(function(f){return parseFloat(f.closedPnl)>0;});
-  var losers = closed.filter(function(f){return parseFloat(f.closedPnl)<0;});
-  var totalPnl = fills.reduce(function(a,f){return a+parseFloat(f.closedPnl||0);},0);
+  var winners = closed.filter(function(f){return f.closedPnl>0;});
+  var losers = closed.filter(function(f){return f.closedPnl<0;});
+  var totalPnl = closed.reduce(function(a,f){return a+f.closedPnl;},0);
   var winRate = closed.length > 0 ? (winners.length/closed.length*100) : 0;
-  var avgWin = winners.length > 0 ? winners.reduce(function(a,f){return a+parseFloat(f.closedPnl);},0)/winners.length : 0;
-  var avgLoss = losers.length > 0 ? losers.reduce(function(a,f){return a+parseFloat(f.closedPnl);},0)/losers.length : 0;
-  var best = closed.length > 0 ? Math.max.apply(null,closed.map(function(f){return parseFloat(f.closedPnl);})) : 0;
+  var avgWin = winners.length > 0 ? winners.reduce(function(a,f){return a+f.closedPnl;},0)/winners.length : 0;
+  var avgLoss = losers.length > 0 ? losers.reduce(function(a,f){return a+f.closedPnl;},0)/losers.length : 0;
+  var best = closed.length > 0 ? Math.max.apply(null,closed.map(function(f){return f.closedPnl;})) : 0;
   var winColor = winRate>=50?"var(--green)":"var(--red)";
   document.getElementById("statsGrid").innerHTML = [
     {label:"WIN RATE",val:winRate.toFixed(1)+"%",sub:winners.length+"W / "+losers.length+"L",color:winColor,icon:"🎯"},
@@ -1048,16 +1062,6 @@ function renderStats() {
 
   var coins = ["BTC","ETH","AVAX"];
   var allClosed = fills.filter(function(f){ return Math.abs(parseFloat(f.closedPnl||0)) > 0.0001; });
-  function deduplicateFills(coinFills) {
-    var groups = {};
-    coinFills.forEach(function(f) {
-      var minuteKey = Math.floor(f.time / 60000);
-      var key = f.coin + "_" + minuteKey;
-      if (!groups[key]) groups[key] = { coin: f.coin, time: f.time, closedPnl: 0 };
-      groups[key].closedPnl += parseFloat(f.closedPnl || 0);
-    });
-    return Object.values(groups);
-  }
   document.getElementById("statsByCoin").innerHTML = coins.map(function(coin){
     var raw = allClosed.filter(function(f){return f.coin===coin;});
     var ct = deduplicateFills(raw);
@@ -1228,7 +1232,7 @@ function renderAll() {
     document.getElementById("markPrice").textContent=price?"Mark: $"+parseFloat(price).toLocaleString():"";
     setOrderSide(appState.orderSide);
   };
-  if(appState.lastUpdate){
+  if(appState.lastUpdate){ 
     document.getElementById("lastUpdate").textContent="Aggiornato: "+appState.lastUpdate.toLocaleTimeString("it-IT")+" · Auto-refresh 15s";
   }
   renderStats();
