@@ -883,17 +883,19 @@ function renderPositionRow(pos, withClose) {
 }
 
 function getCloseBadge(pnl) {
-  var tradeSize = parseFloat(localStorage.getItem("hl_size") || "5");
-  var slPct = Math.abs(parseFloat(localStorage.getItem("hl_sl_pct") || "4"));
-  var tpPct = Math.abs(parseFloat(localStorage.getItem("hl_tp_pct") || "12"));
+  var tradeSize = parseFloat(localStorage.getItem("hl_size") || "10");
+  var slPct = Math.abs(parseFloat(localStorage.getItem("hl_sl_pct") || "4.5"));
+  var tpPct = Math.abs(parseFloat(localStorage.getItem("hl_tp_pct") || "9"));
   var slThreshold = -(tradeSize * slPct / 100);
   var tpThreshold =  (tradeSize * tpPct / 100);
-  if (pnl <= slThreshold * 0.7) {
+  if (pnl <= slThreshold * 0.8) {
     return '<span class="close-badge close-badge-sl">🔴 STOP LOSS</span>';
-  } else if (pnl >= tpThreshold * 0.7) {
+  } else if (pnl >= tpThreshold * 0.8) {
     return '<span class="close-badge close-badge-tp">🟢 TAKE PROFIT</span>';
-  } else if (pnl > 0) {
+  } else if (pnl > 0.005) {
     return '<span class="close-badge close-badge-tr">🟠 TRAILING</span>';
+  } else if (pnl < -0.005) {
+    return '<span class="close-badge close-badge-sl">🔴 STOP LOSS</span>';
   } else {
     return '<span class="close-badge close-badge-cl">⚪ CHIUSO</span>';
   }
@@ -1232,7 +1234,7 @@ function renderAll() {
     document.getElementById("markPrice").textContent=price?"Mark: $"+parseFloat(price).toLocaleString():"";
     setOrderSide(appState.orderSide);
   };
-  if(appState.lastUpdate){ 
+  if(appState.lastUpdate){
     document.getElementById("lastUpdate").textContent="Aggiornato: "+appState.lastUpdate.toLocaleTimeString("it-IT")+" · Auto-refresh 15s";
   }
   renderStats();
