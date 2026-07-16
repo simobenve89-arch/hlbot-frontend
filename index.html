@@ -517,8 +517,56 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; h
           </div>
           <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:6px">Il bot userà <span id="sizePreview">$5</span> per ogni posizione</div>
         </div>
-        <button class="btn-primary btn-purple" onclick="saveSize()">💾 SALVA SIZE</button>
+        <button class="btn-primary btn-purple" onclick="saveSize()">💾 SALVA SIZE (tutti)</button>
         <div id="sizeMsg" class="success-msg">✅ Size salvata!</div>
+      </div>
+
+      <!-- Size per coin -->
+      <div class="card" style="padding:20px">
+        <div class="section-title" style="margin-bottom:16px">Size per Coin</div>
+        <div class="config-group">
+          <div class="config-label" style="color:var(--accent)">BTC Size</div>
+          <div class="pct-row">
+            <button class="pct-btn" onclick="adjustCoinSize('BTC',-1)" style="color:var(--accent);border-color:rgba(0,229,255,0.2)">−</button>
+            <div class="pct-display" style="color:var(--accent)">$<input id="sizeBTCInput" type="number" value="15" style="background:none;border:none;outline:none;width:60px;text-align:center;font-size:28px;font-family:'Bebas Neue';color:var(--accent);letter-spacing:2px" /></div>
+            <button class="pct-btn" onclick="adjustCoinSize('BTC',1)" style="color:var(--accent);border-color:rgba(0,229,255,0.2)">+</button>
+          </div>
+        </div>
+        <div class="config-group">
+          <div class="config-label" style="color:var(--purple)">AVAX Size</div>
+          <div class="pct-row">
+            <button class="pct-btn" onclick="adjustCoinSize('AVAX',-1)" style="color:var(--purple);border-color:rgba(167,139,250,0.2)">−</button>
+            <div class="pct-display" style="color:var(--purple)">$<input id="sizeAVAXInput" type="number" value="15" style="background:none;border:none;outline:none;width:60px;text-align:center;font-size:28px;font-family:'Bebas Neue';color:var(--purple);letter-spacing:2px" /></div>
+            <button class="pct-btn" onclick="adjustCoinSize('AVAX',1)" style="color:var(--purple);border-color:rgba(167,139,250,0.2)">+</button>
+          </div>
+        </div>
+        <button class="btn-primary btn-success" onclick="saveCoinSizes()">💾 SALVA SIZE PER COIN</button>
+        <div id="coinSizeMsg" class="success-msg">✅ Size per coin salvate!</div>
+      </div>
+
+      <!-- Trailing per coin -->
+      <div class="card" style="padding:20px">
+        <div class="section-title" style="margin-bottom:16px">Trailing per Coin</div>
+        <div class="config-group">
+          <div class="config-label" style="color:var(--accent)">BTC Trailing</div>
+          <div class="pct-row">
+            <button class="pct-btn" onclick="adjustCoinTrailing('BTC',-0.5)" style="color:var(--accent);border-color:rgba(0,229,255,0.2)">−</button>
+            <div class="pct-display" style="color:var(--accent)"><input id="trailingBTCInput" type="number" value="2" step="0.5" style="background:none;border:none;outline:none;width:60px;text-align:center;font-size:28px;font-family:'Bebas Neue';color:var(--accent);letter-spacing:2px" />%</div>
+            <button class="pct-btn" onclick="adjustCoinTrailing('BTC',0.5)" style="color:var(--accent);border-color:rgba(0,229,255,0.2)">+</button>
+          </div>
+          <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:6px">BTC chiude più veloce con trailing stretto</div>
+        </div>
+        <div class="config-group">
+          <div class="config-label" style="color:var(--purple)">AVAX Trailing</div>
+          <div class="pct-row">
+            <button class="pct-btn" onclick="adjustCoinTrailing('AVAX',-0.5)" style="color:var(--purple);border-color:rgba(167,139,250,0.2)">−</button>
+            <div class="pct-display" style="color:var(--purple)"><input id="trailingAVAXInput" type="number" value="3.5" step="0.5" style="background:none;border:none;outline:none;width:60px;text-align:center;font-size:28px;font-family:'Bebas Neue';color:var(--purple);letter-spacing:2px" />%</div>
+            <button class="pct-btn" onclick="adjustCoinTrailing('AVAX',0.5)" style="color:var(--purple);border-color:rgba(167,139,250,0.2)">+</button>
+          </div>
+          <div style="font-size:10px;color:var(--text3);text-align:center;margin-top:6px">AVAX ha più respiro con trailing largo</div>
+        </div>
+        <button class="btn-primary btn-orange" onclick="saveCoinTrailings()">💾 SALVA TRAILING PER COIN</button>
+        <div id="coinTrailingMsg" class="success-msg">✅ Trailing per coin salvati!</div>
       </div>
 
       <div class="card" style="padding:20px">
@@ -754,6 +802,34 @@ function saveSize() {
   msg.style.display = "block"; setTimeout(function(){msg.style.display="none"},3000);
   fetch(BACKEND_URL+"/size",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tradeSize:val})})
     .then(function(r){return r.json();}).then(function(d){if(d.success)addNotif("✅ Size $"+val+" salvata!","win");}).catch(function(){});
+}
+function adjustCoinSize(coin, delta) {
+  var input = document.getElementById('size' + coin + 'Input');
+  var val = Math.max(1, parseInt(input.value) + delta);
+  input.value = val;
+}
+function saveCoinSizes() {
+  var btcSize = parseInt(document.getElementById('sizeBTCInput').value) || 15;
+  var avaxSize = parseInt(document.getElementById('sizeAVAXInput').value) || 15;
+  var msg = document.getElementById('coinSizeMsg');
+  Promise.all([
+    fetch(BACKEND_URL+"/size-coin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({coin:"BTC",size:btcSize})}),
+    fetch(BACKEND_URL+"/size-coin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({coin:"AVAX",size:avaxSize})})
+  ]).then(function(){ msg.style.display="block"; setTimeout(function(){msg.style.display="none"},3000); addNotif("✅ Size BTC:$"+btcSize+" AVAX:$"+avaxSize,"win"); }).catch(function(e){addNotif("❌ "+e.message,"loss");});
+}
+function adjustCoinTrailing(coin, delta) {
+  var input = document.getElementById('trailing' + coin + 'Input');
+  var val = Math.max(0.5, Math.round((parseFloat(input.value) + delta)*10)/10);
+  input.value = val;
+}
+function saveCoinTrailings() {
+  var btcTrailing = parseFloat(document.getElementById('trailingBTCInput').value) || 2;
+  var avaxTrailing = parseFloat(document.getElementById('trailingAVAXInput').value) || 3.5;
+  var msg = document.getElementById('coinTrailingMsg');
+  Promise.all([
+    fetch(BACKEND_URL+"/trailing-coin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({coin:"BTC",trailing:btcTrailing})}),
+    fetch(BACKEND_URL+"/trailing-coin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({coin:"AVAX",trailing:avaxTrailing})})
+  ]).then(function(){ msg.style.display="block"; setTimeout(function(){msg.style.display="none"},3000); addNotif("✅ Trailing BTC:"+btcTrailing+"% AVAX:"+avaxTrailing+"%","win"); }).catch(function(e){addNotif("❌ "+e.message,"loss");});
 }
 function saveLeverage() {
   var val = document.getElementById("leverageSlider").value;
